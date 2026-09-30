@@ -1,0 +1,10 @@
+# Normaliza quebras de linha para LF (padrão Linux) dentro do repositório
+* text=auto eol=lf
+
+# Arquivos binários: o Git não deve tentar converter
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary

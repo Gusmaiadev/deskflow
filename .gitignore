@@ -1,0 +1,21 @@
+# Dependências: reinstaláveis com npm install, nunca versionar
+node_modules/
+
+# Artefatos de build: gerados a partir do código-fonte
+dist/
+build/
+coverage/
+
+# Variáveis de ambiente: podem conter segredos. NUNCA versionar.
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Arquivos de sistema operacional e de IDEs
+.DS_Store
+Thumbs.db
+.idea/
