@@ -1,16 +1,26 @@
 import express from 'express';
+import { prisma } from './database/prisma.js';
 
-// A aplicação express é um função que recebe uma requisição (req) e produz uma resposta (res)
 export const app = express();
 
-// Middleware roda antes das rotas definidas, este lê o corpo JSON das requisições e tranforma em obj JavaScript
 app.use(express.json());
 
-// Healt check: rota que mostra que está rodando
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    status:'ok',
+app.get('/health', async (_req, res) => {
+  let database: 'up' | 'down' = 'up';
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch (error) {
+    database = 'down';
+    console.error('⚠️ Health check: banco indisponível:', error instanceof Error ? error.message : error);
+  }
+
+  const healthy = database === 'up';
+
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
+    database,
     uptime: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
-  })
-})
+  });
+});
