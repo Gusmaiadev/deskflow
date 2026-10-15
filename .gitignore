@@ -19,3 +19,12 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .idea/
+
+# Claude Code: configurações locais, memória do projeto e servidores MCP. Nunca versionar.
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+
+# Código gerado pelo Prisma (recriado com "npm run db:generate")
+backend/src/generated/
