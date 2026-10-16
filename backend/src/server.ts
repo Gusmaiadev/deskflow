@@ -1,8 +1,9 @@
 import { createServer } from 'node:http';
 import { app } from './app.js';
+import { env } from './config/env.js';
 import { prisma } from './database/prisma.js';
 
-const PORT = Number(process.env.PORT) || 3333;
+const PORT = env.PORT;
 
 const server = createServer(app);
 

@@ -1,26 +1,13 @@
 import express from 'express';
-import { prisma } from './database/prisma.js';
+import { healthRoutes } from './modules/health/health.routes.js';
+import { errorHandler } from './shared/middlewares/error-handler.js';
+import { notFoundHandler } from './shared/middlewares/not-found.js';
 
 export const app = express();
 
 app.use(express.json());
 
-app.get('/health', async (_req, res) => {
-  let database: 'up' | 'down' = 'up';
+app.use(healthRoutes);
 
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-  } catch (error) {
-    database = 'down';
-    console.error('⚠️ Health check: banco indisponível:', error instanceof Error ? error.message : error);
-  }
-
-  const healthy = database === 'up';
-
-  res.status(healthy ? 200 : 503).json({
-    status: healthy ? 'ok' : 'degraded',
-    database,
-    uptime: Math.round(process.uptime()),
-    timestamp: new Date().toISOString(),
-  });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
