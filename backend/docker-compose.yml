@@ -31,6 +31,10 @@ services:
       NODE_ENV: production
       PORT: 3333
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Defina JWT_ACCESS_SECRET no .env}
+      JWT_ACCESS_TTL_MINUTES: ${JWT_ACCESS_TTL_MINUTES:-15}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
     ports:
       - "127.0.0.1:3334:3333"
     depends_on:
