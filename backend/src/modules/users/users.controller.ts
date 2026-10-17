@@ -10,6 +10,13 @@ export async function list(req: Request, res: Response): Promise<void> {
   res.json({ data: users });
 }
 
+export async function getById(req: Request, res: Response): Promise<void> {
+  const { id } = userIdParamsSchema.parse(req.params);
+  const user = await usersService.getUser(id);
+
+  res.json({ data: user });
+}
+
 export async function create(req: Request, res: Response): Promise<void> {
   const input = createUserSchema.parse(req.body);
   const actor = getAuthUser(req);

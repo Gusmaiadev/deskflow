@@ -10,6 +10,16 @@ export async function listUsers(filters: ListUsersQuery): Promise<PublicUser[]> 
   return users.map(toPublicUser);
 }
 
+export async function getUser(userId: string): Promise<PublicUser> {
+  const user = await usersRepository.findById(userId);
+
+  if (!user) {
+    throw new NotFoundError('Usuário não encontrado.', 'USER_NOT_FOUND');
+  }
+
+  return toPublicUser(user);
+}
+
 /**
  * O perfil do token pode estar desatualizado por até 15 minutos (a "janela" do JWT).
  * Para criar ou alterar usuários, conferimos no banco que quem age ainda é um admin ativo:

@@ -10,4 +10,5 @@ usersRoutes.use(authenticate);
 
 usersRoutes.get('/', authorize('ADMIN', 'AGENT'), usersController.list);
 usersRoutes.post('/', authorize('ADMIN'), usersController.create);
+usersRoutes.get('/:id', authorize('ADMIN'), usersController.getById);
 usersRoutes.patch('/:id', authorize('ADMIN'), usersController.update);
