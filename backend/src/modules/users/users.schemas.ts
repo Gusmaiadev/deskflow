@@ -21,7 +21,9 @@ const newPasswordSchema = z
   .max(128, 'A senha pode ter no máximo 128 caracteres.');
 
 export const userIdParamsSchema = z.object({
-  id: z.uuid('Identificador de usuário inválido.'),
+  // Em minúsculas, como o id do token: o banco aceita o UUID com maiúsculas ou minúsculas,
+  // mas o service compara os dois como texto (regra SELF_LOCKOUT).
+  id: z.uuid('Identificador de usuário inválido.').toLowerCase(),
 });
 
 export const listUsersQuerySchema = z.object({
