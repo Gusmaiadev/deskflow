@@ -5,7 +5,7 @@ import { AppError } from '../errors/app-error.js';
 
 type ErrorBody = { error: { code: string; message: string; details?: unknown } };
 
-/** Erros gerados pelo próprio Express ao ler o corpo (JSON malformado, corpo grande demais...). */
+/** Erros gerados pelo próprio Express ao ler a requisição (JSON malformado, corpo grande demais, URL inválida...). */
 function isHttpError(error: unknown): error is { status: number; type?: string } {
   return typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number';
 }
@@ -53,6 +53,11 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   } else if (isHttpError(error) && error.type === 'entity.too.large') {
     status = 413;
     body = { error: { code: 'PAYLOAD_TOO_LARGE', message: 'O corpo da requisição é grande demais.' } };
+  } else if (isHttpError(error) && error.status >= 400 && error.status < 500) {
+    // Outros erros do Express ao ler a requisição (%XX inválido na URL, charset não suportado...):
+    // o problema está na requisição, então mantemos o status (400, 415...) em vez de responder 500.
+    status = error.status;
+    body = { error: { code: 'INVALID_REQUEST', message: 'Não foi possível ler a requisição.' } };
   }
 
   if (status >= 500) {
