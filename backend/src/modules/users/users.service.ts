@@ -1,4 +1,4 @@
-import { BadRequestError, ConflictError, NotFoundError } from '../../shared/errors/app-error.js';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error.js';
 import { hashPassword } from '../auth/password.js';
 import * as refreshTokensRepository from '../auth/refresh-tokens.repository.js';
 import { toPublicUser, type PublicUser } from './users.mapper.js';
@@ -10,7 +10,22 @@ export async function listUsers(filters: ListUsersQuery): Promise<PublicUser[]> 
   return users.map(toPublicUser);
 }
 
-export async function createUser(input: CreateUserInput): Promise<PublicUser> {
+/**
+ * O perfil do token pode estar desatualizado por até 15 minutos (a "janela" do JWT).
+ * Para criar ou alterar usuários, conferimos no banco que quem age ainda é um admin ativo:
+ * assim, um admin rebaixado ou desativado não usa o token antigo para se restaurar.
+ */
+async function ensureActiveAdmin(actorId: string): Promise<void> {
+  const actor = await usersRepository.findById(actorId);
+
+  if (!actor || !actor.isActive || actor.role !== 'ADMIN') {
+    throw new ForbiddenError();
+  }
+}
+
+export async function createUser(actorId: string, input: CreateUserInput): Promise<PublicUser> {
+  await ensureActiveAdmin(actorId);
+
   const existing = await usersRepository.findByEmail(input.email);
 
   if (existing) {
@@ -32,6 +47,8 @@ export async function updateUser(
   userId: string,
   input: UpdateUserInput,
 ): Promise<PublicUser> {
+  await ensureActiveAdmin(actorId);
+
   const removesOwnAdminAccess =
     actorId === userId && (input.isActive === false || (input.role !== undefined && input.role !== 'ADMIN'));
 

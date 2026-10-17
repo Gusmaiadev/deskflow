@@ -12,7 +12,9 @@ export async function list(req: Request, res: Response): Promise<void> {
 
 export async function create(req: Request, res: Response): Promise<void> {
   const input = createUserSchema.parse(req.body);
-  const user = await usersService.createUser(input);
+  const actor = getAuthUser(req);
+
+  const user = await usersService.createUser(actor.id, input);
 
   res.status(201).json({ data: user });
 }
