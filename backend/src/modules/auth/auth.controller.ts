@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { getAuthUser } from '../../shared/middlewares/authenticate.js';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from './auth.cookies.js';
-import { loginSchema } from './auth.schemas.js';
+import { changePasswordSchema, loginSchema } from './auth.schemas.js';
 import * as authService from './auth.service.js';
 import type { Session } from './auth.service.js';
 
@@ -48,4 +48,13 @@ export async function me(req: Request, res: Response): Promise<void> {
   const user = await authService.getCurrentUser(id);
 
   res.json({ data: user });
+}
+
+export async function changePassword(req: Request, res: Response): Promise<void> {
+  const input = changePasswordSchema.parse(req.body);
+  const { id } = getAuthUser(req);
+
+  await authService.changePassword(id, input, readRefreshCookie(req));
+
+  res.status(204).end();
 }

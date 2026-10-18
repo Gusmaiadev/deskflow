@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { User } from '../../generated/prisma/client.js';
-import { UnauthorizedError } from '../../shared/errors/app-error.js';
+import { BadRequestError, UnauthorizedError } from '../../shared/errors/app-error.js';
 import { toPublicUser, type PublicUser } from '../users/users.mapper.js';
 import * as usersRepository from '../users/users.repository.js';
 import { ACCESS_TOKEN_TTL_SECONDS, signAccessToken } from './access-token.js';
-import type { LoginInput } from './auth.schemas.js';
+import type { ChangePasswordInput, LoginInput } from './auth.schemas.js';
 import { getDummyHash, hashPassword, needsRehash, verifyPassword } from './password.js';
 import { generateRefreshToken, hashRefreshToken, refreshTokenExpiresAt } from './refresh-token.js';
 import * as refreshTokensRepository from './refresh-tokens.repository.js';
@@ -53,7 +53,9 @@ export async function login(input: LoginInput): Promise<Session> {
   // Se os parâmetros do hash mudaram (como do seed do Dia 2 para hoje),
   // aproveitamos que temos a senha em mãos para refazer o hash.
   if (needsRehash(user.passwordHash)) {
-    await usersRepository.updatePasswordHash(user.id, await hashPassword(input.password));
+    const newHash = await hashPassword(input.password);
+    // Só grava se o hash ainda for o que conferimos: o rehash nunca desfaz uma troca de senha.
+    await usersRepository.updatePasswordHashIfUnchanged(user.id, user.passwordHash, newHash);
   }
 
   await refreshTokensRepository.deleteExpiredForUser(user.id);
@@ -127,4 +129,46 @@ export async function getCurrentUser(userId: string): Promise<PublicUser> {
   if (!user || !user.isActive) throw sessionExpired();
 
   return toPublicUser(user);
+}
+
+/**
+ * Troca a senha do próprio usuário, conferindo a atual, e encerra as OUTRAS sessões.
+ * A sessão do refresh token informado (a deste dispositivo) continua; sem ele, todas terminam.
+ * Limites, como os do modelo de dois tokens: um access token já emitido vale até expirar, e um
+ * login ou uma renovação em andamento no mesmo instante da troca pode escapar da revogação.
+ */
+export async function changePassword(
+  userId: string,
+  input: ChangePasswordInput,
+  rawToken: string | undefined,
+): Promise<void> {
+  const user = await usersRepository.findById(userId);
+
+  if (!user || !user.isActive) throw sessionExpired();
+
+  const passwordMatches = await verifyPassword(user.passwordHash, input.currentPassword);
+
+  if (!passwordMatches) {
+    throw new BadRequestError('A senha atual está incorreta.', 'INVALID_CURRENT_PASSWORD');
+  }
+
+  // Só grava se a senha não mudou desde a conferência: em duas trocas simultâneas, vale a primeira.
+  const { count } = await usersRepository.updatePasswordHashIfUnchanged(
+    user.id,
+    user.passwordHash,
+    await hashPassword(input.newPassword),
+  );
+
+  if (count === 0) {
+    throw new BadRequestError('A senha atual está incorreta.', 'INVALID_CURRENT_PASSWORD');
+  }
+
+  const stored = rawToken ? await refreshTokensRepository.findByHash(hashRefreshToken(rawToken)) : null;
+  const keepsCurrentSession = stored !== null && stored.userId === user.id && !stored.revokedAt;
+
+  if (keepsCurrentSession) {
+    await refreshTokensRepository.revokeOtherFamiliesForUser(user.id, stored.familyId);
+  } else {
+    await refreshTokensRepository.revokeAllForUser(user.id);
+  }
 }

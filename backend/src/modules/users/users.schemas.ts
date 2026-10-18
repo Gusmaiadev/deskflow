@@ -15,7 +15,7 @@ const nameSchema = z
   .min(2, 'O nome precisa ter pelo menos 2 caracteres.')
   .max(100, 'O nome pode ter no máximo 100 caracteres.');
 
-const newPasswordSchema = z
+export const newPasswordSchema = z
   .string()
   .min(8, 'A senha precisa ter pelo menos 8 caracteres.')
   .max(128, 'A senha pode ter no máximo 128 caracteres.');

@@ -27,3 +27,14 @@ export function update(id: string, data: { name?: string; role?: Role; isActive?
 export function updatePasswordHash(id: string, passwordHash: string) {
   return prisma.user.update({ where: { id }, data: { passwordHash } });
 }
+
+/**
+ * Grava o novo hash só se o atual ainda for "currentHash", numa única operação.
+ * Se a senha foi trocada no meio do caminho, nada é gravado (count 0).
+ */
+export function updatePasswordHashIfUnchanged(id: string, currentHash: string, passwordHash: string) {
+  return prisma.user.updateMany({
+    where: { id, passwordHash: currentHash },
+    data: { passwordHash },
+  });
+}

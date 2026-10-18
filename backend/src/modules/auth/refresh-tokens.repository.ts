@@ -53,6 +53,14 @@ export function revokeAllForUser(userId: string) {
   });
 }
 
+/** Encerra as sessões do usuário nos outros dispositivos, mantendo a indicada (a atual). */
+export function revokeOtherFamiliesForUser(userId: string, keepFamilyId: string) {
+  return prisma.refreshToken.updateMany({
+    where: { userId, revokedAt: null, familyId: { not: keepFamilyId } },
+    data: { revokedAt: new Date() },
+  });
+}
+
 /** Limpeza: tokens vencidos não servem nem para detectar reuso. */
 export function deleteExpiredForUser(userId: string) {
   return prisma.refreshToken.deleteMany({
