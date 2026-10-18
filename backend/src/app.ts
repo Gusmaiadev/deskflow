@@ -4,6 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { env } from './config/env.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
+import { categoriesRoutes } from './modules/categories/categories.routes.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
 import { errorHandler } from './shared/middlewares/error-handler.js';
@@ -25,6 +26,7 @@ app.use(cookieParser());
 app.use(healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/categories', categoriesRoutes);
 
 // 4) Rota inexistente e tratamento de erros (sempre por último)
 app.use(notFoundHandler);
