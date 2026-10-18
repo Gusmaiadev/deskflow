@@ -6,7 +6,7 @@ import * as usersRepository from '../users/users.repository.js';
 import { ACCESS_TOKEN_TTL_SECONDS, signAccessToken } from './access-token.js';
 import type { ChangePasswordInput, LoginInput } from './auth.schemas.js';
 import { getDummyHash, hashPassword, needsRehash, verifyPassword } from './password.js';
-import { generateRefreshToken, hashRefreshToken, refreshTokenExpiresAt } from './refresh-token.js';
+import { generateRefreshToken, hashRefreshToken, refreshTokenExpiresAt, sessionMaxAgeReached } from './refresh-token.js';
 import * as refreshTokensRepository from './refresh-tokens.repository.js';
 
 export type Session = {
@@ -89,6 +89,14 @@ export async function refresh(rawToken: string | undefined): Promise<Session> {
   }
 
   if (stored.expiresAt <= new Date() || !stored.user.isActive) {
+    await refreshTokensRepository.revokeFamily(stored.familyId);
+    throw sessionExpired();
+  }
+
+  // Limite absoluto: no máximo SESSION_MAX_AGE_DAYS desde o login, mesmo para quem renova sempre.
+  const startedAt = (await refreshTokensRepository.findFamilyStartedAt(stored.familyId)) ?? stored.createdAt;
+
+  if (sessionMaxAgeReached(startedAt)) {
     await refreshTokensRepository.revokeFamily(stored.familyId);
     throw sessionExpired();
   }

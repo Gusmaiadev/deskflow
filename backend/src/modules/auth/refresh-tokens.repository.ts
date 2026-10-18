@@ -61,9 +61,30 @@ export function revokeOtherFamiliesForUser(userId: string, keepFamilyId: string)
   });
 }
 
-/** Limpeza: tokens vencidos não servem nem para detectar reuso. */
-export function deleteExpiredForUser(userId: string) {
+/** Quando a sessão começou: o token mais antigo da família guarda a data do login. */
+export async function findFamilyStartedAt(familyId: string): Promise<Date | null> {
+  const { _min } = await prisma.refreshToken.aggregate({
+    where: { familyId },
+    _min: { createdAt: true },
+  });
+  return _min.createdAt;
+}
+
+/**
+ * Limpeza: apaga as sessões inteiramente vencidas. Numa sessão ainda viva, os tokens antigos
+ * ficam: o primeiro guarda a data do login (limite absoluto) e os já trocados detectam reuso.
+ * A folga de um dia evita apagar uma sessão que está sendo renovada no instante em que vence.
+ */
+export async function deleteExpiredForUser(userId: string) {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const expiredFamilies = await prisma.refreshToken.groupBy({
+    by: ['familyId'],
+    where: { userId },
+    having: { expiresAt: { _max: { lt: oneDayAgo } } },
+  });
+
   return prisma.refreshToken.deleteMany({
-    where: { userId, expiresAt: { lt: new Date() } },
+    where: { userId, familyId: { in: expiredFamilies.map((family) => family.familyId) } },
   });
 }
