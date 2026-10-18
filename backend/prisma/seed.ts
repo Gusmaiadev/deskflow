@@ -1,5 +1,5 @@
-import argon2 from 'argon2';
 import { prisma } from '../src/database/prisma.js';
+import { hashPassword } from '../src/modules/auth/password.js';
 import { calculateDueAt } from '../src/modules/tickets/ticket-sla.js';
 import type { Role, TicketPriority, TicketStatus } from '../src/generated/prisma/client.js';
 
@@ -128,7 +128,7 @@ async function main(): Promise<void> {
   // 1) Usuários: upsert = cria se não existe, atualiza se já existe (seed idempotente).
   const userIds = new Map<string, string>();
   for (const user of users) {
-    const passwordHash = await argon2.hash(seedPassword!);
+    const passwordHash = await hashPassword(seedPassword!);
     const saved = await prisma.user.upsert({
       where: { email: user.email },
       update: { name: user.name, role: user.role, passwordHash, isActive: true },

@@ -49,6 +49,7 @@ model User {
   requestedTickets Ticket[]        @relation("TicketRequester")
   assignedTickets  Ticket[]        @relation("TicketAssignee")
   comments         TicketComment[]
+  refreshTokens    RefreshToken[]
 
   @@map("users")
 }
@@ -111,4 +112,20 @@ model TicketComment {
   @@index([ticketId, createdAt])
   @@index([authorId])
   @@map("ticket_comments")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.Char(64)
+  familyId  String    @map("family_id") @db.Uuid
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
 }
