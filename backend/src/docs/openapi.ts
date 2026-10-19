@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Role, TicketPriority, TicketStatus } from '../generated/prisma/enums.js';
-import { loginSchema } from '../modules/auth/auth.schemas.js';
+import { changePasswordSchema, loginSchema } from '../modules/auth/auth.schemas.js';
 import { createCategorySchema, updateCategorySchema } from '../modules/categories/categories.schemas.js';
 import { createCommentSchema } from '../modules/comments/comments.schemas.js';
 import { createTicketSchema, listTicketsQuerySchema, updateTicketSchema } from '../modules/tickets/tickets.schemas.js';
@@ -199,7 +199,7 @@ export const openApiDocument = {
   },
   tags: [
     { name: 'Saúde', description: 'Verificação de funcionamento, usada pela infraestrutura' },
-    { name: 'Autenticação', description: 'Login, renovação da sessão e logout' },
+    { name: 'Autenticação', description: 'Login, renovação da sessão, logout e troca de senha' },
     { name: 'Usuários', description: 'Gestão de usuários e perfis' },
     { name: 'Categorias', description: 'Tipos de problema atendidos' },
     { name: 'Chamados', description: 'Abertura, consulta e atendimento de chamados' },
@@ -265,6 +265,21 @@ export const openApiDocument = {
         responses: { 200: dataResponse('Dados do usuário', ref('User')), 401: errors[401] },
       },
     },
+    '/api/auth/password': {
+      patch: {
+        tags: ['Autenticação'],
+        summary: 'Trocar a própria senha',
+        description: 'Confere a senha atual e encerra as outras sessões; a sessão do cookie enviado continua.',
+        security: bearer,
+        requestBody: jsonBody(fromZod(changePasswordSchema)),
+        responses: {
+          204: { description: 'Senha alterada' },
+          400: errors[400],
+          401: errors[401],
+          429: errors[429],
+        },
+      },
+    },
     '/api/users': {
       get: {
         tags: ['Usuários'],
@@ -293,6 +308,19 @@ export const openApiDocument = {
       },
     },
     '/api/users/{id}': {
+      get: {
+        tags: ['Usuários'],
+        summary: 'Detalhar usuário (admin)',
+        security: bearer,
+        parameters: [pathId('id', 'Id do usuário')],
+        responses: {
+          200: dataResponse('Usuário', ref('User')),
+          400: errors[400],
+          401: errors[401],
+          403: errors[403],
+          404: errors[404],
+        },
+      },
       patch: {
         tags: ['Usuários'],
         summary: 'Alterar nome, perfil ou status (admin)',
