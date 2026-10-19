@@ -1,0 +1,42 @@
+import { ConflictError, ForbiddenError } from '../../shared/errors/app-error.js';
+import type { AccessTokenUser } from '../auth/access-token.js';
+import { isStaff } from '../tickets/ticket-rules.js';
+import { findAccessibleTicket } from '../tickets/tickets.service.js';
+import { toCommentResponse, type CommentResponse } from './comments.mapper.js';
+import * as commentsRepository from './comments.repository.js';
+import type { CreateCommentInput } from './comments.schemas.js';
+
+type Actor = AccessTokenUser;
+
+export async function listComments(actor: Actor, ticketId: string): Promise<CommentResponse[]> {
+  // Reaproveita a regra de acesso dos chamados: quem não vê o chamado, não vê os comentários.
+  await findAccessibleTicket(actor, ticketId);
+
+  const comments = await commentsRepository.listByTicket(ticketId, {
+    includeInternal: isStaff(actor.role), // notas internas: só para a equipe
+  });
+
+  return comments.map(toCommentResponse);
+}
+
+export async function addComment(actor: Actor, ticketId: string, input: CreateCommentInput): Promise<CommentResponse> {
+  const ticket = await findAccessibleTicket(actor, ticketId);
+
+  if (ticket.status === 'CLOSED') {
+    throw new ConflictError('Não é possível comentar em um chamado fechado.', 'TICKET_CLOSED');
+  }
+
+  if (input.isInternal && !isStaff(actor.role)) {
+    throw new ForbiddenError('Somente a equipe de suporte pode criar notas internas.', 'INTERNAL_NOTE_FORBIDDEN');
+  }
+
+  // O solicitante respondeu o que a equipe perguntou: o chamado volta para atendimento.
+  const requesterReplied = !isStaff(actor.role) && ticket.status === 'WAITING_REQUESTER';
+
+  const comment = await commentsRepository.create(
+    { ticketId, authorId: actor.id, body: input.body, isInternal: input.isInternal },
+    requesterReplied ? 'IN_PROGRESS' : undefined,
+  );
+
+  return toCommentResponse(comment);
+}
