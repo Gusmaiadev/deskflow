@@ -136,6 +136,12 @@ export function create(data: NewTicket) {
   return prisma.ticket.create({ data, include: ticketInclude });
 }
 
-export function update(id: string, changes: TicketChanges) {
-  return prisma.ticket.update({ where: { id }, data: changes, include: ticketInclude });
+/**
+ * Grava as mudanças só se o chamado ainda estiver como foi lido (o mesmo updatedAt). Se outra pessoa o
+ * alterou nesse meio-tempo, nada é gravado e a função devolve null: quem calculou as mudanças sobre a
+ * versão antiga não sobrescreve o que a outra pessoa fez.
+ */
+export async function update(id: string, changes: TicketChanges, expectedUpdatedAt: Date) {
+  const { count } = await prisma.ticket.updateMany({ where: { id, updatedAt: expectedUpdatedAt }, data: changes });
+  return count === 0 ? null : findById(id);
 }

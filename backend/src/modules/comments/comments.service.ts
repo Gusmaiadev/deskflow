@@ -23,6 +23,7 @@ export async function listComments(actor: Actor, ticketId: string): Promise<Comm
 export async function addComment(actor: Actor, ticketId: string, input: CreateCommentInput): Promise<CommentResponse> {
   const ticket = await findAccessibleTicket(actor, ticketId);
 
+  // Limite conhecido: um comentário comum que chega no mesmo instante do fechamento ainda é gravado.
   if (ticket.status === 'CLOSED') {
     throw new ConflictError('Não é possível comentar em um chamado fechado.', 'TICKET_CLOSED');
   }
@@ -35,10 +36,24 @@ export async function addComment(actor: Actor, ticketId: string, input: CreateCo
   // e o relógio do SLA volta a correr.
   const requesterReplied = !isStaff(actor.role) && ticket.status === 'WAITING_REQUESTER';
 
+  // A volta para atendimento só vale se ninguém alterou o chamado desde a leitura.
   const comment = await commentsRepository.create(
     { ticketId, authorId: actor.id, body: input.body, isInternal: input.isInternal },
-    requesterReplied ? { status: 'IN_PROGRESS', ...slaPauseChanges(ticket, 'IN_PROGRESS', ticket.dueAt) } : undefined,
+    requesterReplied
+      ? {
+          changes: { status: 'IN_PROGRESS', ...slaPauseChanges(ticket, 'IN_PROGRESS', ticket.dueAt) },
+          expectedUpdatedAt: ticket.updatedAt,
+        }
+      : undefined,
   );
+
+  if (!comment) {
+    // O texto continua no formulário: basta enviar de novo, sem recarregar a página.
+    throw new ConflictError(
+      'O chamado foi alterado por outra pessoa enquanto você respondia. Envie a resposta de novo.',
+      'TICKET_CHANGED',
+    );
+  }
 
   return toCommentResponse(comment);
 }

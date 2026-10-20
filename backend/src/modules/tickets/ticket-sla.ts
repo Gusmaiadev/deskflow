@@ -34,10 +34,6 @@ export function recalculateDueAt(
  * O que muda no relógio do SLA quando o status muda. Aguardando o solicitante, o relógio para;
  * na saída, o prazo anda para a frente exatamente o tempo parado. Toda mudança de status grava o
  * waitingSince correspondente, para o par status/pausa nunca ficar inconsistente.
- *
- * Limite conhecido: as contas usam o chamado lido no início da requisição. Se alguém tira o chamado
- * da espera no mesmo instante em que outra pessoa troca a prioridade, vale a gravação que chegar por
- * último, e a conta da outra se perde. Fechar isso exige controle de concorrência na gravação.
  */
 export function slaPauseChanges(
   ticket: { waitingSince: Date | null },

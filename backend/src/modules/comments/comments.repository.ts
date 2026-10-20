@@ -18,19 +18,22 @@ export function listByTicket(ticketId: string, options: { includeInternal: boole
 
 /**
  * Cria o comentário e, se pedido, altera o chamado (status e relógio do SLA) na MESMA transação:
- * ou as duas coisas acontecem, ou nenhuma.
+ * ou as duas coisas acontecem, ou nenhuma. O chamado só é alterado se ainda estiver como foi lido
+ * (o mesmo updatedAt); se outra pessoa o alterou nesse meio-tempo, nada é gravado e a função devolve null.
  */
 export function create(
   data: { ticketId: string; authorId: string; body: string; isInternal: boolean },
-  ticketChanges?: TicketChanges,
+  ticketUpdate?: { changes: TicketChanges; expectedUpdatedAt: Date },
 ) {
   return prisma.$transaction(async (tx) => {
-    const comment = await tx.ticketComment.create({ data, include: commentInclude });
-
-    if (ticketChanges) {
-      await tx.ticket.update({ where: { id: data.ticketId }, data: ticketChanges });
+    if (ticketUpdate) {
+      const { count } = await tx.ticket.updateMany({
+        where: { id: data.ticketId, updatedAt: ticketUpdate.expectedUpdatedAt },
+        data: ticketUpdate.changes,
+      });
+      if (count === 0) return null;
     }
 
-    return comment;
+    return tx.ticketComment.create({ data, include: commentInclude });
   });
 }

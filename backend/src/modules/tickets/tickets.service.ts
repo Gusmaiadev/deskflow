@@ -133,8 +133,8 @@ export async function updateTicket(actor: Actor, ticketId: string, input: Update
   const now = new Date();
   const changes: TicketChanges = {};
 
-  if (input.title !== undefined) changes.title = input.title;
-  if (input.description !== undefined) changes.description = input.description;
+  if (input.title !== undefined && input.title !== ticket.title) changes.title = input.title;
+  if (input.description !== undefined && input.description !== ticket.description) changes.description = input.description;
 
   if (input.categoryId !== undefined && input.categoryId !== ticket.categoryId) {
     await ensureActiveCategory(input.categoryId);
@@ -182,6 +182,12 @@ export async function updateTicket(actor: Actor, ticketId: string, input: Update
     return toTicketResponse(ticket, now);
   }
 
-  const updated = await ticketsRepository.update(ticketId, changes);
+  // Só grava se ninguém alterou o chamado desde a leitura: em duas alterações simultâneas, vale a primeira.
+  const updated = await ticketsRepository.update(ticketId, changes, ticket.updatedAt);
+
+  if (!updated) {
+    throw new ConflictError('O chamado foi alterado por outra pessoa. Recarregue e tente de novo.', 'TICKET_CHANGED');
+  }
+
   return toTicketResponse(updated, now);
 }

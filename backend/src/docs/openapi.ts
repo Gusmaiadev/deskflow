@@ -424,7 +424,9 @@ export const openApiDocument = {
       patch: {
         tags: ['Chamados'],
         summary: 'Alterar chamado (status, prioridade, responsável...)',
-        description: 'As mudanças de status seguem o fluxo permitido para o perfil.',
+        description:
+          'As mudanças de status seguem o fluxo permitido para o perfil. Se outra pessoa alterou o chamado ao ' +
+          'mesmo tempo, nada é gravado e a resposta é 409 TICKET_CHANGED: recarregue e tente de novo.',
         security: bearer,
         parameters: [pathId('id', 'Id do chamado')],
         requestBody: jsonBody(fromZod(updateTicketSchema)),
@@ -454,6 +456,10 @@ export const openApiDocument = {
       post: {
         tags: ['Comentários'],
         summary: 'Comentar no chamado',
+        description:
+          'A resposta do solicitante a um chamado que aguarda por ele devolve o chamado para atendimento; nesse caso, ' +
+          'se outra pessoa alterou o chamado no mesmo instante, nada é gravado (nem o comentário) e a resposta é ' +
+          '409 TICKET_CHANGED.',
         security: bearer,
         parameters: [pathId('ticketId', 'Id do chamado')],
         requestBody: jsonBody(fromZod(createCommentSchema)),

@@ -4,6 +4,7 @@ import { app } from '../../src/app.js';
 import { prisma } from '../../src/database/prisma.js';
 import { authHeader } from '../helpers/auth.js';
 import { disconnectDatabase, resetDatabase, seedTestData, type TestData } from '../helpers/database.js';
+import { ticketInProgress as openTicketInProgress, waitingFor } from '../helpers/tickets.js';
 
 const HOUR = 3_600_000;
 
@@ -16,34 +17,7 @@ beforeEach(async () => {
 
 afterAll(disconnectDatabase);
 
-/** Abre um chamado de prioridade média (24 h de SLA), e o técnico começa o atendimento. */
-async function ticketInProgress() {
-  const opened = await request(app)
-    .post('/api/tickets')
-    .set(await authHeader('ana@test.example'))
-    .send({ title: 'Monitor piscando', description: 'A tela pisca a cada poucos segundos.', categoryId: data.category.id });
-  expect(opened.status).toBe(201);
-
-  const started = await request(app)
-    .patch(`/api/tickets/${opened.body.data.id}`)
-    .set(await authHeader('agent@test.example'))
-    .send({ status: 'IN_PROGRESS' });
-  expect(started.status).toBe(200);
-
-  return opened.body.data;
-}
-
-/** O técnico pergunta algo ao solicitante, e simulamos que a pergunta foi feita há algumas horas. */
-async function waitingFor(ticketId: string, hours: number) {
-  const response = await request(app)
-    .patch(`/api/tickets/${ticketId}`)
-    .set(await authHeader('agent@test.example'))
-    .send({ status: 'WAITING_REQUESTER' });
-
-  expect(response.status).toBe(200);
-  await prisma.ticket.update({ where: { id: ticketId }, data: { waitingSince: new Date(Date.now() - hours * HOUR) } });
-  return response.body.data;
-}
+const ticketInProgress = () => openTicketInProgress(data.category.id);
 
 /** Quanto o prazo andou para a frente, em milissegundos. */
 const shift = (before: string, after: string) => Date.parse(after) - Date.parse(before);
