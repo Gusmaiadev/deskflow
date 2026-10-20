@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma.js';
 import { OPEN_STATUSES } from '../tickets/ticket-rules.js';
+import { overdueWhere } from '../tickets/tickets.repository.js';
 
 /** Fuso usado para agrupar os chamados por dia no gráfico. */
 const TIME_ZONE = 'America/Sao_Paulo';
@@ -17,7 +18,7 @@ export function countOpenByPriority() {
 }
 
 export function countOverdue(now: Date) {
-  return prisma.ticket.count({ where: { status: { in: [...OPEN_STATUSES] }, dueAt: { lt: now } } });
+  return prisma.ticket.count({ where: overdueWhere(now) }); // a mesma regra do filtro "atrasados"
 }
 
 export function countUnassigned() {

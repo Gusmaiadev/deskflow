@@ -41,4 +41,16 @@ describe('isOverdue', () => {
   it('prazo ainda no futuro: não está atrasado', () => {
     expect(isOverdue({ status: 'OPEN', dueAt: inOneMinute }, now)).toBe(false);
   });
+
+  it('aguardando o solicitante desde antes de vencer: o relógio parou, não está atrasado', () => {
+    const waitingSince = new Date('2026-10-14T11:00:00.000Z');
+
+    expect(isOverdue({ status: 'WAITING_REQUESTER', dueAt: oneMinuteAgo, waitingSince }, now)).toBe(false);
+  });
+
+  it('pausado só depois de vencer: continua atrasado', () => {
+    const waitingSince = new Date('2026-10-14T11:59:30.000Z');
+
+    expect(isOverdue({ status: 'WAITING_REQUESTER', dueAt: oneMinuteAgo, waitingSince }, now)).toBe(true);
+  });
 });

@@ -1,6 +1,6 @@
 import type { Role, TicketStatus } from '../../generated/prisma/enums.js';
 
-/** Status em que o chamado ainda corre contra o prazo do SLA. */
+/** Status em que o chamado ainda está em andamento e conta para o SLA (em WAITING_REQUESTER, com o relógio parado). */
 export const OPEN_STATUSES: readonly TicketStatus[] = ['OPEN', 'IN_PROGRESS', 'WAITING_REQUESTER'];
 
 /** Para onde a equipe de suporte (técnicos e admins) pode levar um chamado. */
@@ -34,7 +34,13 @@ export function canTransition(role: Role, from: TicketStatus, to: TicketStatus):
   return allowedTransitions(role, from).includes(to);
 }
 
-/** Atrasado: ainda em andamento e com o prazo vencido. */
-export function isOverdue(ticket: { status: TicketStatus; dueAt: Date }, now: Date = new Date()): boolean {
-  return OPEN_STATUSES.includes(ticket.status) && ticket.dueAt < now;
+/**
+ * Atrasado: ainda em andamento e com o prazo vencido. Enquanto o chamado aguarda o solicitante,
+ * o relógio está parado: conta só se o prazo já tinha vencido quando a pausa começou.
+ */
+export function isOverdue(
+  ticket: { status: TicketStatus; dueAt: Date; waitingSince?: Date | null },
+  now: Date = new Date(),
+): boolean {
+  return OPEN_STATUSES.includes(ticket.status) && ticket.dueAt < (ticket.waitingSince ?? now);
 }

@@ -1,6 +1,7 @@
 import { ConflictError, ForbiddenError } from '../../shared/errors/app-error.js';
 import type { AccessTokenUser } from '../auth/access-token.js';
 import { isStaff } from '../tickets/ticket-rules.js';
+import { slaPauseChanges } from '../tickets/ticket-sla.js';
 import { findAccessibleTicket } from '../tickets/tickets.service.js';
 import { toCommentResponse, type CommentResponse } from './comments.mapper.js';
 import * as commentsRepository from './comments.repository.js';
@@ -30,12 +31,13 @@ export async function addComment(actor: Actor, ticketId: string, input: CreateCo
     throw new ForbiddenError('Somente a equipe de suporte pode criar notas internas.', 'INTERNAL_NOTE_FORBIDDEN');
   }
 
-  // O solicitante respondeu o que a equipe perguntou: o chamado volta para atendimento.
+  // O solicitante respondeu o que a equipe perguntou: o chamado volta para atendimento,
+  // e o relógio do SLA volta a correr.
   const requesterReplied = !isStaff(actor.role) && ticket.status === 'WAITING_REQUESTER';
 
   const comment = await commentsRepository.create(
     { ticketId, authorId: actor.id, body: input.body, isInternal: input.isInternal },
-    requesterReplied ? 'IN_PROGRESS' : undefined,
+    requesterReplied ? { status: 'IN_PROGRESS', ...slaPauseChanges(ticket, 'IN_PROGRESS', ticket.dueAt) } : undefined,
   );
 
   return toCommentResponse(comment);

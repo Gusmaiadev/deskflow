@@ -3,7 +3,7 @@ import type { AccessTokenUser } from '../auth/access-token.js';
 import * as categoriesRepository from '../categories/categories.repository.js';
 import * as usersRepository from '../users/users.repository.js';
 import { allowedTransitions, canTransition, isStaff } from './ticket-rules.js';
-import { calculateDueAt } from './ticket-sla.js';
+import { calculateDueAt, recalculateDueAt, slaPauseChanges } from './ticket-sla.js';
 import { toTicketResponse, type TicketResponse } from './tickets.mapper.js';
 import * as ticketsRepository from './tickets.repository.js';
 import type { TicketChanges, TicketWithRelations } from './tickets.repository.js';
@@ -143,8 +143,8 @@ export async function updateTicket(actor: Actor, ticketId: string, input: Update
 
   if (input.priority !== undefined && input.priority !== ticket.priority) {
     changes.priority = input.priority;
-    // O prazo é recalculado a partir da abertura, com o SLA da nova prioridade.
-    changes.dueAt = calculateDueAt(input.priority, ticket.createdAt);
+    // O prazo é recalculado a partir da abertura, com o SLA da nova prioridade (sem perder as pausas).
+    changes.dueAt = recalculateDueAt(ticket, input.priority);
   }
 
   if (input.assigneeId !== undefined && input.assigneeId !== ticket.assigneeId) {
@@ -163,6 +163,10 @@ export async function updateTicket(actor: Actor, ticketId: string, input: Update
     }
 
     changes.status = input.status;
+    // Aguardando o solicitante, o relógio do SLA para; na saída, o prazo anda o tempo parado.
+    const pause = slaPauseChanges(ticket, input.status, changes.dueAt ?? ticket.dueAt, now);
+    changes.waitingSince = pause.waitingSince;
+    if (pause.dueAt) changes.dueAt = pause.dueAt;
 
     if (input.status === 'RESOLVED') changes.resolvedAt = now;
     if (input.status === 'CLOSED') changes.closedAt = now;

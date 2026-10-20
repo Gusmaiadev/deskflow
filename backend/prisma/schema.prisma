@@ -68,17 +68,18 @@ model Category {
 }
 
 model Ticket {
-  id          String         @id @default(uuid(7)) @db.Uuid
-  number      Int            @unique @default(autoincrement())
-  title       String         @db.VarChar(150)
-  description String         @db.Text
-  status      TicketStatus   @default(OPEN)
-  priority    TicketPriority @default(MEDIUM)
-  dueAt       DateTime       @map("due_at") @db.Timestamptz(3)
-  resolvedAt  DateTime?      @map("resolved_at") @db.Timestamptz(3)
-  closedAt    DateTime?      @map("closed_at") @db.Timestamptz(3)
-  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id           String         @id @default(uuid(7)) @db.Uuid
+  number       Int            @unique @default(autoincrement())
+  title        String         @db.VarChar(150)
+  description  String         @db.Text
+  status       TicketStatus   @default(OPEN)
+  priority     TicketPriority @default(MEDIUM)
+  dueAt        DateTime       @map("due_at") @db.Timestamptz(3)
+  waitingSince DateTime?      @map("waiting_since") @db.Timestamptz(3)
+  resolvedAt   DateTime?      @map("resolved_at") @db.Timestamptz(3)
+  closedAt     DateTime?      @map("closed_at") @db.Timestamptz(3)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   requesterId String  @map("requester_id") @db.Uuid
   assigneeId  String? @map("assignee_id") @db.Uuid

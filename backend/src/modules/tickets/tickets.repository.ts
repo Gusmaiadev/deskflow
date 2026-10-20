@@ -43,6 +43,7 @@ export type TicketChanges = {
   categoryId?: string;
   assigneeId?: string | null;
   dueAt?: Date;
+  waitingSince?: Date | null;
   resolvedAt?: Date | null;
   closedAt?: Date | null;
 };
@@ -57,6 +58,17 @@ const ORDER_BY: Record<TicketSort, Prisma.TicketOrderByWithRelationInput[]> = {
 
 const MAX_INTEGER = 2_147_483_647; // maior valor de uma coluna INTEGER no PostgreSQL
 
+/**
+ * Atrasados: em andamento e com o prazo vencido. Enquanto o chamado aguarda o solicitante, o relógio
+ * está parado em waitingSince (a mesma regra de isOverdue), então o prazo é comparado com essa coluna.
+ */
+export function overdueWhere(now: Date): Prisma.TicketWhereInput {
+  return {
+    status: { in: [...OPEN_STATUSES] },
+    OR: [{ waitingSince: null, dueAt: { lt: now } }, { dueAt: { lt: prisma.ticket.fields.waitingSince } }],
+  };
+}
+
 /** Traduz os filtros da aplicação para a linguagem de consulta do Prisma. */
 function buildWhere(filters: TicketFilters, now: Date): Prisma.TicketWhereInput {
   const conditions: Prisma.TicketWhereInput[] = [];
@@ -68,9 +80,17 @@ function buildWhere(filters: TicketFilters, now: Date): Prisma.TicketWhereInput 
   if (filters.categoryId) conditions.push({ categoryId: filters.categoryId });
 
   if (filters.overdue === true) {
-    conditions.push({ status: { in: [...OPEN_STATUSES] }, dueAt: { lt: now } });
+    conditions.push(overdueWhere(now));
   } else if (filters.overdue === false) {
-    conditions.push({ OR: [{ status: { notIn: [...OPEN_STATUSES] } }, { dueAt: { gte: now } }] });
+    // O contrário de overdueWhere, por extenso: com NOT, a comparação com um waitingSince nulo
+    // daria NULL no SQL e deixaria de fora os chamados no prazo.
+    conditions.push({
+      OR: [
+        { status: { notIn: [...OPEN_STATUSES] } },
+        { waitingSince: null, dueAt: { gte: now } },
+        { dueAt: { gte: prisma.ticket.fields.waitingSince } },
+      ],
+    });
   }
 
   if (filters.search) {

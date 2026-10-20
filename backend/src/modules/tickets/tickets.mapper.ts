@@ -14,6 +14,7 @@ export type TicketResponse = {
   priority: TicketPriority;
   isOverdue: boolean;
   dueAt: Date;
+  waitingSince: Date | null;
   resolvedAt: Date | null;
   closedAt: Date | null;
   createdAt: Date;
@@ -33,6 +34,7 @@ export function toTicketResponse(ticket: TicketWithRelations, now: Date = new Da
     priority: ticket.priority,
     isOverdue: isOverdue(ticket, now),
     dueAt: ticket.dueAt,
+    waitingSince: ticket.waitingSince,
     resolvedAt: ticket.resolvedAt,
     closedAt: ticket.closedAt,
     createdAt: ticket.createdAt,

@@ -130,8 +130,20 @@ const schemas = {
       description: { type: 'string' },
       status: { type: 'string', enum: Object.values(TicketStatus) },
       priority: { type: 'string', enum: Object.values(TicketPriority) },
-      isOverdue: { type: 'boolean', description: 'Em andamento e com o prazo do SLA vencido' },
-      dueAt: { ...dateTime, description: 'Prazo calculado pelo SLA da prioridade' },
+      isOverdue: {
+        type: 'boolean',
+        description: 'Em andamento e com o prazo do SLA vencido (o relógio para enquanto aguarda o solicitante)',
+      },
+      dueAt: {
+        ...dateTime,
+        description:
+          'Prazo calculado pelo SLA da prioridade, mais as esperas pelo solicitante já encerradas. Durante uma espera, ' +
+          'o prazo só anda quando ela termina',
+      },
+      waitingSince: {
+        ...nullableDateTime,
+        description: 'Desde quando o chamado aguarda o solicitante; enquanto isso, o SLA fica pausado',
+      },
       resolvedAt: nullableDateTime,
       closedAt: nullableDateTime,
       createdAt: dateTime,
