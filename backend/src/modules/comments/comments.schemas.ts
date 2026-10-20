@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const ticketParamsSchema = z.object({
-  ticketId: z.uuid('Identificador de chamado inválido.'),
+  ticketId: z.uuid('Identificador de chamado inválido.').toLowerCase(),
 });
 
 export const createCommentSchema = z.object({

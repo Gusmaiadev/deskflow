@@ -9,7 +9,8 @@ const nameSchema = z
 const descriptionSchema = z.string().trim().max(255, 'A descrição pode ter no máximo 255 caracteres.');
 
 export const categoryIdParamsSchema = z.object({
-  id: z.uuid('Identificador de categoria inválido.'),
+  // Em minúsculas, como os ids que vêm do banco: o service compara os dois como texto.
+  id: z.uuid('Identificador de categoria inválido.').toLowerCase(),
 });
 
 export const createCategorySchema = z.object({
