@@ -1,12 +1,18 @@
 import { z } from 'zod';
+import { hasNoNullCharacter, NULL_CHARACTER_MESSAGE } from '../../shared/validation/text.js';
 
 const nameSchema = z
   .string()
   .trim()
   .min(2, 'O nome precisa ter pelo menos 2 caracteres.')
-  .max(60, 'O nome pode ter no máximo 60 caracteres.');
+  .max(60, 'O nome pode ter no máximo 60 caracteres.')
+  .refine(hasNoNullCharacter, NULL_CHARACTER_MESSAGE);
 
-const descriptionSchema = z.string().trim().max(255, 'A descrição pode ter no máximo 255 caracteres.');
+const descriptionSchema = z
+  .string()
+  .trim()
+  .max(255, 'A descrição pode ter no máximo 255 caracteres.')
+  .refine(hasNoNullCharacter, NULL_CHARACTER_MESSAGE);
 
 export const categoryIdParamsSchema = z.object({
   // Em minúsculas, como os ids que vêm do banco: o service compara os dois como texto.

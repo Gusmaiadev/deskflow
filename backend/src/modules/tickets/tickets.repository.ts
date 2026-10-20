@@ -1,3 +1,4 @@
+import { escapeLikePattern } from '../../database/like.js';
 import { prisma } from '../../database/prisma.js';
 import type { Prisma, TicketPriority, TicketStatus } from '../../generated/prisma/client.js';
 import { OPEN_STATUSES } from './ticket-rules.js';
@@ -76,11 +77,12 @@ function buildWhere(filters: TicketFilters, now: Date): Prisma.TicketWhereInput 
     const digits = filters.search.replace(/^#/, '');
     const number = /^\d{1,10}$/.test(digits) ? Number(digits) : undefined;
     const searchByNumber = number !== undefined && number <= MAX_INTEGER ? [{ number }] : [];
+    const text = escapeLikePattern(filters.search);
 
     conditions.push({
       OR: [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
+        { title: { contains: text, mode: 'insensitive' } },
+        { description: { contains: text, mode: 'insensitive' } },
         ...searchByNumber,
       ],
     });

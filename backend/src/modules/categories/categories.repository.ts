@@ -1,3 +1,4 @@
+import { escapeLikePattern } from '../../database/like.js';
 import { prisma } from '../../database/prisma.js';
 
 /** Os campos que a API expõe de uma categoria. O "select" já entrega o DTO pronto. */
@@ -20,10 +21,13 @@ export function findById(id: string) {
   return prisma.category.findUnique({ where: { id }, select: categorySelect });
 }
 
-/** Busca ignorando maiúsculas e minúsculas: "hardware" e "Hardware" são a mesma categoria. */
+/**
+ * Busca ignorando maiúsculas e minúsculas: "hardware" e "Hardware" são a mesma categoria.
+ * Com mode 'insensitive', o Prisma compara com ILIKE: escapado, o nome vale como texto, e não como padrão.
+ */
 export function findByName(name: string) {
   return prisma.category.findFirst({
-    where: { name: { equals: name, mode: 'insensitive' } },
+    where: { name: { equals: escapeLikePattern(name), mode: 'insensitive' } },
     select: categorySelect,
   });
 }
