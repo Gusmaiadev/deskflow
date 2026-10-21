@@ -14,9 +14,17 @@ import { ticketsRoutes } from './modules/tickets/tickets.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
 import { errorHandler } from './shared/middlewares/error-handler.js';
 import { notFoundHandler } from './shared/middlewares/not-found.js';
+import { requireOriginSecret } from './shared/middlewares/origin-guard.js';
 import { apiRateLimit } from './shared/middlewares/rate-limit.js';
 
 export const app = express();
+
+// Atrás do CloudFront, o IP real do usuário chega no header X-Forwarded-For.
+// Dizer quantos proxies são confiáveis faz o req.ip (e o rate limit) usar o IP certo.
+// Com 0 (no seu PC), a configuração padrão do Express continua valendo.
+if (env.TRUST_PROXY_HOPS > 0) {
+  app.set('trust proxy', env.TRUST_PROXY_HOPS);
+}
 
 // 1) Proteções que valem para toda requisição
 app.use(
@@ -29,6 +37,9 @@ app.use(
     },
   }),
 );
+// Em produção, /api só aceita o que chegou pelo CloudFront. O /health fica de fora
+// porque o healthcheck do Docker o chama de dentro do próprio container.
+app.use('/api', requireOriginSecret(env.ORIGIN_SECRET));
 app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
 app.use('/api', apiRateLimit);
 

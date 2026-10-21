@@ -23,6 +23,10 @@ const envSchema = z.object({
         .map((origin) => origin.trim())
         .filter(Boolean),
     ),
+  /** Quantos proxies confiáveis ficam na frente da API (0 = nenhum; CloudFront = 1). */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+  /** Segredo que o CloudFront envia no header X-Origin-Verify. Sem ele, a verificação fica desligada. */
+  ORIGIN_SECRET: z.string().min(32, 'ORIGIN_SECRET precisa ter pelo menos 32 caracteres.').optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
