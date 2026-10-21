@@ -15,6 +15,12 @@ RUN apt-get update -y \
 
 WORKDIR /app
 
+# Certificados da AWS que permitem à API conferir a identidade da RDS
+# (TLS com verificação completa). O --chmod é necessário: um arquivo
+# baixado pelo ADD nasce com permissão 600, e o usuário "node" da imagem
+# final não conseguiria lê-lo.
+ADD --chmod=644 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem ./certs/rds-global-bundle.pem
+
 # Manifestos primeiro: aproveita o cache de camadas do Docker.
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -30,7 +36,19 @@ RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma gene
   && npm run build
 
 # =====================================================================
-# Estágio 2: runtime
+# Estágio 2: tools
+# Ferramentas de manutenção do banco (migrations e seed). Reaproveita o
+# estágio de build, que já tem o CLI do Prisma e o tsx. Só roda sob
+# demanda; nunca fica no ar.
+# =====================================================================
+FROM build AS tools
+
+ENV NODE_ENV=production
+
+CMD ["npx", "prisma", "migrate", "deploy"]
+
+# =====================================================================
+# Estágio 3: runtime
 # A imagem final: só o necessário para RODAR a API.
 # =====================================================================
 FROM node:24-slim AS runtime
@@ -48,6 +66,7 @@ RUN npm ci --omit=dev --omit=optional \
   && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/certs ./certs
 
 # Roda como usuário comum, não como root.
 USER node
