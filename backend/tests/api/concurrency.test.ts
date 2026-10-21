@@ -1,11 +1,10 @@
 import request, { type Response } from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { app } from '../../src/app.js';
-import { prisma } from '../../src/database/prisma.js';
-import type { Prisma } from '../../src/generated/prisma/client.js';
 import { SLA_HOURS } from '../../src/modules/tickets/ticket-sla.js';
 import { authHeader } from '../helpers/auth.js';
 import { disconnectDatabase, resetDatabase, seedTestData, type TestData } from '../helpers/database.js';
+import { whileAnotherRequestWrites } from '../helpers/locks.js';
 import { ticketInProgress as openTicketInProgress, waitingFor } from '../helpers/tickets.js';
 
 const HOUR = 3_600_000;
@@ -21,39 +20,9 @@ afterAll(disconnectDatabase);
 
 const ticketInProgress = () => openTicketInProgress(data.category.id);
 
-/**
- * Espera até a requisição estar parada, aguardando o bloqueio que esta transação segura. Lê pg_locks
- * (o PostgreSQL inteiro, com os outros bancos: pg_blocking_pids filtra quem espera por esta transação),
- * e não pg_stat_activity, que o PostgreSQL congela na 1ª leitura dentro de uma transação.
- */
-async function untilSomeoneWaitsForTheRow(tx: Prisma.TransactionClient) {
-  for (let attempt = 0; attempt < 150; attempt++) {
-    const [row] = await tx.$queryRaw<{ waiting: number }[]>`
-      SELECT count(*)::int AS waiting FROM pg_locks
-      WHERE NOT granted AND pg_backend_pid() = ANY (pg_blocking_pids(pid))
-    `;
-    if (row && row.waiting > 0) return;
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
-  throw new Error('A requisição não chegou a esperar pelo bloqueio da linha.');
-}
-
-/**
- * Simula outra pessoa alterando o chamado no mesmo instante: uma transação altera a linha e só
- * confirma depois que a requisição já leu a versão antiga e ficou esperando para gravar.
- */
-async function whileSomeoneElseChanges(ticketId: string, send: () => PromiseLike<Response>) {
-  let pending: Promise<Response> | undefined;
-
-  await prisma.$transaction(async (tx) => {
-    await tx.ticket.update({ where: { id: ticketId }, data: { title: 'Alterado por outra pessoa' } });
-    pending = Promise.resolve(send());
-    await untilSomeoneWaitsForTheRow(tx);
-  });
-
-  if (!pending) throw new Error('A requisição não foi enviada.');
-  return pending;
-}
+/** Simula outra pessoa alterando o chamado (o título) no mesmo instante em que a requisição grava. */
+const whileSomeoneElseChanges = (ticketId: string, send: () => PromiseLike<Response>) =>
+  whileAnotherRequestWrites((tx) => tx.ticket.update({ where: { id: ticketId }, data: { title: 'Alterado por outra pessoa' } }), send);
 
 describe('alterações simultâneas no mesmo chamado', () => {
   it('a alteração calculada sobre uma versão antiga recebe 409, em vez de sobrescrever a outra', async () => {
