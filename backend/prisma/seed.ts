@@ -51,6 +51,7 @@ type SeedTicket = {
   requester: string;
   assignee?: string;
   openedHoursAgo: number;
+  waitingHoursAgo?: number; // desde quando aguarda o solicitante (SLA pausado)
   resolvedHoursAgo?: number;
   closedHoursAgo?: number;
   comments?: SeedComment[];
@@ -79,7 +80,7 @@ const tickets: SeedTicket[] = [
     title: 'Ar-condicionado da sala 3 pingando',
     description: 'O aparelho está pingando sobre a mesa de reunião.',
     priority: 'MEDIUM', status: 'WAITING_REQUESTER', category: 'facilities', requester: 'ana', assignee: 'juliana',
-    openedHoursAgo: 30,
+    openedHoursAgo: 30, waitingHoursAgo: 26,
     comments: [
       { author: 'juliana', body: 'Técnico agendado. Qual o melhor horário para a visita?', hoursAgo: 26 },
       { author: 'juliana', body: 'Fornecedor cobra visita extra após as 18h.', isInternal: true, hoursAgo: 25 },
@@ -180,6 +181,7 @@ async function main(): Promise<void> {
             status: ticket.status,
             createdAt: openedAt,
             dueAt: calculateDueAt(ticket.priority, openedAt),
+            waitingSince: ticket.waitingHoursAgo ? hoursAgo(ticket.waitingHoursAgo) : null,
             resolvedAt: ticket.resolvedHoursAgo ? hoursAgo(ticket.resolvedHoursAgo) : null,
             closedAt: ticket.closedHoursAgo ? hoursAgo(ticket.closedHoursAgo) : null,
             requester: { connect: { id: idOf(userIds, ticket.requester) } },

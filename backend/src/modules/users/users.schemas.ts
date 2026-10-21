@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Role } from '../../generated/prisma/enums.js';
+import { hasNoNullCharacter, NULL_CHARACTER_MESSAGE } from '../../shared/validation/text.js';
 
 /** E-mail normalizado: sem espaços nas pontas e em minúsculas, antes de validar o formato. */
 export const emailSchema = z
@@ -13,7 +14,8 @@ const nameSchema = z
   .string()
   .trim()
   .min(2, 'O nome precisa ter pelo menos 2 caracteres.')
-  .max(100, 'O nome pode ter no máximo 100 caracteres.');
+  .max(100, 'O nome pode ter no máximo 100 caracteres.')
+  .refine(hasNoNullCharacter, NULL_CHARACTER_MESSAGE);
 
 export const newPasswordSchema = z
   .string()
