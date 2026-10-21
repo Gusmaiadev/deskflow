@@ -105,6 +105,8 @@ model Ticket {
   @@index([categoryId])
   @@index([status, dueAt])
   @@index([createdAt])
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "tickets_title_trgm_idx")
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "tickets_description_trgm_idx")
   @@map("tickets")
 }
 
