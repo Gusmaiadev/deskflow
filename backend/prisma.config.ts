@@ -15,7 +15,9 @@ export default defineConfig({
     seed: 'tsx prisma/seed.ts',
   },
   datasource: {
+    // Em produção, as migrations usam um usuário com mais permissões, informado
+    // em MIGRATION_DATABASE_URL. Sem ela (no seu PC), vale a DATABASE_URL.
     // env() falha com um erro claro se DATABASE_URL não estiver definida.
-    url: env('DATABASE_URL'),
+    url: process.env.MIGRATION_DATABASE_URL ?? env('DATABASE_URL'),
   },
 });
