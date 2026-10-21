@@ -1,0 +1,48 @@
+# Ambiente de PRODUÇÃO do DeskFlow, usado na EC2. O banco é a RDS, fora daqui.
+#   sudo docker compose -f docker-compose.prod.yml up -d --build     -> sobe ou atualiza a API
+#   sudo docker compose -f docker-compose.prod.yml run --rm --build tools
+#                                                                    -> aplica as migrations
+#   sudo docker compose -f docker-compose.prod.yml run --rm tools npx prisma db seed
+#                                                                    -> cria os dados de exemplo
+name: deskflow-prod
+
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    image: deskflow-api
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 3333
+    ports:
+      # Porta 80 da EC2 -> porta 3333 do container. Quem pode chegar
+      # na porta 80 é decidido pelo Security Group (só o CloudFront).
+      - "80:3333"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3333/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      # Limita os logs a 3 arquivos de 10 MB, para não lotar o disco.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  tools:
+    # Só roda quando chamado pelo nome (docker compose run tools).
+    profiles: ["tools"]
+    build:
+      context: .
+      target: tools
+    image: deskflow-tools
+    env_file:
+      - .env.production
+      - .env.tools
+    environment:
+      NODE_ENV: production
