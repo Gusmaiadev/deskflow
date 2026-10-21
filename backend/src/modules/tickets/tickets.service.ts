@@ -1,6 +1,7 @@
 import { AppError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error.js';
 import type { AccessTokenUser } from '../auth/access-token.js';
 import * as categoriesRepository from '../categories/categories.repository.js';
+import { eventsFromChanges } from '../ticket-events/events-from-changes.js';
 import * as usersRepository from '../users/users.repository.js';
 import { allowedTransitions, canTransition, isStaff } from './ticket-rules.js';
 import { calculateDueAt, recalculateDueAt, slaPauseChanges } from './ticket-sla.js';
@@ -183,7 +184,9 @@ export async function updateTicket(actor: Actor, ticketId: string, input: Update
   }
 
   // Só grava se ninguém alterou o chamado desde a leitura: em duas alterações simultâneas, vale a primeira.
-  const updated = await ticketsRepository.update(ticketId, changes, ticket.updatedAt);
+  // Status, prioridade e responsável que mudaram entram no histórico, na mesma transação.
+  const events = eventsFromChanges(ticket, changes, actor.id);
+  const updated = await ticketsRepository.update(ticketId, changes, ticket.updatedAt, events);
 
   if (!updated) {
     throw new ConflictError('O chamado foi alterado por outra pessoa. Recarregue e tente de novo.', 'TICKET_CHANGED');

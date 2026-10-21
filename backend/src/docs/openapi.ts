@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Role, TicketPriority, TicketStatus } from '../generated/prisma/enums.js';
+import { Role, TicketEventField, TicketPriority, TicketStatus } from '../generated/prisma/enums.js';
 import { changePasswordSchema, loginSchema } from '../modules/auth/auth.schemas.js';
 import { createCategorySchema, updateCategorySchema } from '../modules/categories/categories.schemas.js';
 import { createCommentSchema } from '../modules/comments/comments.schemas.js';
@@ -75,6 +75,10 @@ const uuid = { type: 'string', format: 'uuid' };
 const dateTime = { type: 'string', format: 'date-time' };
 const nullableDateTime = { type: ['string', 'null'], format: 'date-time' };
 const person = { type: 'object', properties: { id: uuid, name: { type: 'string' } } };
+/** Valor de um evento do histórico: um status, uma prioridade ou um responsável (ou nenhum). */
+const ticketEventValue = {
+  anyOf: [{ type: 'string', enum: [...Object.values(TicketStatus), ...Object.values(TicketPriority)] }, person, { type: 'null' }],
+};
 
 const schemas = {
   Error: {
@@ -179,6 +183,21 @@ const schemas = {
         type: 'object',
         properties: { id: uuid, name: { type: 'string' }, role: { type: 'string', enum: Object.values(Role) } },
       },
+    },
+  },
+  TicketEvent: {
+    type: 'object',
+    description: 'Uma mudança de status, prioridade ou responsável',
+    properties: {
+      id: uuid,
+      field: { type: 'string', enum: Object.values(TicketEventField), description: 'O que mudou' },
+      from: {
+        ...ticketEventValue,
+        description: 'Valor anterior: o status ou a prioridade; no responsável, { id, name } ou null (sem responsável)',
+      },
+      to: { ...ticketEventValue, description: 'Valor novo, no mesmo formato' },
+      actor: person,
+      createdAt: dateTime,
     },
   },
   Dashboard: {
@@ -437,6 +456,20 @@ export const openApiDocument = {
           403: errors[403],
           404: errors[404],
           409: errors[409],
+        },
+      },
+    },
+    '/api/tickets/{id}/events': {
+      get: {
+        tags: ['Chamados'],
+        summary: 'Histórico do chamado (status, prioridade e responsável)',
+        description: 'Do mais antigo para o mais novo. Quem não vê o chamado recebe 404.',
+        security: bearer,
+        parameters: [pathId('id', 'Id do chamado')],
+        responses: {
+          200: dataResponse('Histórico', { type: 'array', items: ref('TicketEvent') }),
+          401: errors[401],
+          404: errors[404],
         },
       },
     },

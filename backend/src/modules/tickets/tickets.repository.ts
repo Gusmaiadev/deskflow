@@ -1,6 +1,7 @@
 import { escapeLikePattern } from '../../database/like.js';
 import { prisma } from '../../database/prisma.js';
 import type { Prisma, TicketPriority, TicketStatus } from '../../generated/prisma/client.js';
+import type { NewTicketEvent } from '../ticket-events/ticket-events.repository.js';
 import { OPEN_STATUSES } from './ticket-rules.js';
 import type { TicketSort } from './tickets.schemas.js';
 
@@ -137,11 +138,17 @@ export function create(data: NewTicket) {
 }
 
 /**
- * Grava as mudanças só se o chamado ainda estiver como foi lido (o mesmo updatedAt). Se outra pessoa o
- * alterou nesse meio-tempo, nada é gravado e a função devolve null: quem calculou as mudanças sobre a
- * versão antiga não sobrescreve o que a outra pessoa fez.
+ * Grava as mudanças só se o chamado ainda estiver como foi lido (o mesmo updatedAt), junto com os
+ * eventos do histórico, na MESMA transação. Se outra pessoa o alterou nesse meio-tempo, nada é gravado
+ * (nem os eventos) e a função devolve null: quem calculou as mudanças sobre a versão antiga não
+ * sobrescreve o que a outra pessoa fez.
  */
-export async function update(id: string, changes: TicketChanges, expectedUpdatedAt: Date) {
-  const { count } = await prisma.ticket.updateMany({ where: { id, updatedAt: expectedUpdatedAt }, data: changes });
-  return count === 0 ? null : findById(id);
+export function update(id: string, changes: TicketChanges, expectedUpdatedAt: Date, events: NewTicketEvent[]) {
+  return prisma.$transaction(async (tx) => {
+    const { count } = await tx.ticket.updateMany({ where: { id, updatedAt: expectedUpdatedAt }, data: changes });
+    if (count === 0) return null;
+
+    if (events.length > 0) await tx.ticketEvent.createMany({ data: events });
+    return tx.ticket.findUnique({ where: { id }, include: ticketInclude });
+  });
 }

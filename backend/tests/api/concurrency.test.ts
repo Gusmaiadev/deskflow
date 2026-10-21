@@ -64,11 +64,14 @@ describe('alterações simultâneas no mesmo chamado', () => {
       request(app).patch(`/api/tickets/${ticket.id}`).set(agent).send({ priority: 'HIGH' }),
     );
     const after = await request(app).get(`/api/tickets/${ticket.id}`).set(agent);
+    const events = await request(app).get(`/api/tickets/${ticket.id}/events`).set(agent);
 
     expect(response.status).toBe(409);
     expect(response.body.error.code).toBe('TICKET_CHANGED');
     expect(after.body.data.title).toBe('Alterado por outra pessoa');
     expect(after.body.data.priority).toBe('MEDIUM');
+    // O histórico também não registra a alteração recusada: só o início do atendimento.
+    expect(events.body.data.map((event: { field: string }) => event.field)).toEqual(['STATUS', 'ASSIGNEE']);
   });
 
   it('a resposta do solicitante a um chamado que mudou nesse meio-tempo recebe 409, e nada é gravado', async () => {
@@ -81,11 +84,14 @@ describe('alterações simultâneas no mesmo chamado', () => {
     );
     const comments = await request(app).get(`/api/tickets/${ticket.id}/comments`).set(ana);
     const after = await request(app).get(`/api/tickets/${ticket.id}`).set(ana);
+    const events = await request(app).get(`/api/tickets/${ticket.id}/events`).set(ana);
 
     expect(response.status).toBe(409);
     expect(response.body.error.code).toBe('TICKET_CHANGED');
     expect(comments.body.data).toEqual([]);
     expect(after.body.data.status).toBe('WAITING_REQUESTER');
+    // Nem a volta para atendimento entrou no histórico: o último evento ainda é a ida para a espera.
+    expect(events.body.data.map((event: { to: unknown }) => event.to).at(-1)).toBe('WAITING_REQUESTER');
   });
 
   it('sair da espera e trocar a prioridade ao mesmo tempo nunca perde uma das contas', async () => {

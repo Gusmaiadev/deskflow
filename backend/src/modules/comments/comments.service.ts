@@ -1,5 +1,6 @@
 import { ConflictError, ForbiddenError } from '../../shared/errors/app-error.js';
 import type { AccessTokenUser } from '../auth/access-token.js';
+import { eventsFromChanges } from '../ticket-events/events-from-changes.js';
 import { isStaff } from '../tickets/ticket-rules.js';
 import { slaPauseChanges } from '../tickets/ticket-sla.js';
 import { findAccessibleTicket } from '../tickets/tickets.service.js';
@@ -35,16 +36,14 @@ export async function addComment(actor: Actor, ticketId: string, input: CreateCo
   // O solicitante respondeu o que a equipe perguntou: o chamado volta para atendimento,
   // e o relógio do SLA volta a correr.
   const requesterReplied = !isStaff(actor.role) && ticket.status === 'WAITING_REQUESTER';
+  const resume = requesterReplied
+    ? { status: 'IN_PROGRESS' as const, ...slaPauseChanges(ticket, 'IN_PROGRESS', ticket.dueAt) }
+    : undefined;
 
-  // A volta para atendimento só vale se ninguém alterou o chamado desde a leitura.
+  // A volta para atendimento (e o evento no histórico) só vale se ninguém alterou o chamado desde a leitura.
   const comment = await commentsRepository.create(
     { ticketId, authorId: actor.id, body: input.body, isInternal: input.isInternal },
-    requesterReplied
-      ? {
-          changes: { status: 'IN_PROGRESS', ...slaPauseChanges(ticket, 'IN_PROGRESS', ticket.dueAt) },
-          expectedUpdatedAt: ticket.updatedAt,
-        }
-      : undefined,
+    resume && { changes: resume, expectedUpdatedAt: ticket.updatedAt, events: eventsFromChanges(ticket, resume, actor.id) },
   );
 
   if (!comment) {

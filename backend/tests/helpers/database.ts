@@ -6,7 +6,7 @@ export const TEST_PASSWORD = 'senha-dos-testes-123';
 
 /** Apaga todos os dados e reinicia a numeração dos chamados. */
 export async function resetDatabase(): Promise<void> {
-  await prisma.$executeRaw`TRUNCATE TABLE ticket_comments, tickets, refresh_tokens, categories, users RESTART IDENTITY CASCADE`;
+  await prisma.$executeRaw`TRUNCATE TABLE ticket_events, ticket_comments, tickets, refresh_tokens, categories, users RESTART IDENTITY CASCADE`;
 }
 
 /** Um cenário pequeno e conhecido: um admin, um técnico, dois solicitantes e uma categoria. */

@@ -9,6 +9,11 @@ export function findByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } });
 }
 
+/** Só id e nome: o suficiente para mostrar quem é (ex.: o responsável no histórico do chamado). */
+export function findNames(ids: string[]) {
+  return prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+}
+
 export function list(filters: { role?: Role }) {
   return prisma.user.findMany({
     where: { role: filters.role },
