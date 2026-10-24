@@ -37,7 +37,13 @@ app.use(
     },
   }),
 );
-// Em produção, /api só aceita o que chegou pelo CloudFront. O /health fica de fora
+// As respostas da API dependem de quem pergunta: nenhum cache (navegador, Vercel ou
+// CloudFront) pode guardá-las.
+app.use('/api', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+// Em produção, /api só aceita o que chegou pelo proxy (Vercel/CloudFront). O /health fica de fora
 // porque o healthcheck do Docker o chama de dentro do próprio container.
 app.use('/api', requireOriginSecret(env.ORIGIN_SECRET));
 app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
