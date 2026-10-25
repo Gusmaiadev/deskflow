@@ -31,6 +31,7 @@ describe('POST /api/auth/login', () => {
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('SameSite=Strict');
     expect(cookie).toContain('Path=/api/auth');
+    expect(response.get('Cache-Control')).toBe('no-store');
   });
 
   it('responde igual para senha errada e para e-mail inexistente', async () => {
