@@ -1,4 +1,4 @@
-import { Ticket, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Ticket, Users, type LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router';
 import { useAuth } from '@/auth/auth-context';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,11 @@ type NavItem = {
   roles?: Role[]; // sem "roles": todos os perfis veem
 };
 
-const NAV_ITEMS: NavItem[] = [{ to: '/tickets', label: 'Chamados', icon: Ticket }];
+const NAV_ITEMS: NavItem[] = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['AGENT', 'ADMIN'] },
+  { to: '/tickets', label: 'Chamados', icon: Ticket },
+  { to: '/users', label: 'Usuários', icon: Users, roles: ['ADMIN'] },
+];
 
 export function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { user } = useAuth();

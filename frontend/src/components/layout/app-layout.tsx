@@ -1,6 +1,6 @@
 import { LifeBuoy, Menu } from 'lucide-react';
 import { useState } from 'react';
-import { Link, Outlet } from 'react-router';
+import { Link, Outlet, useNavigation } from 'react-router';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -25,9 +25,14 @@ function Brand() {
 /** Estrutura das telas logadas: menu lateral (ou gaveta no celular), cabeçalho e conteúdo. */
 export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  // "loading" enquanto o código de uma página carregada sob demanda está chegando.
+  const navigation = useNavigation();
 
   return (
     <div className="flex min-h-svh">
+      {navigation.state === 'loading' && (
+        <div className="fixed inset-x-0 top-0 z-50 h-0.5 animate-pulse bg-primary" role="progressbar" aria-label="Carregando página" />
+      )}
       {/* Menu lateral fixo: só em telas médias para cima (md:) */}
       <aside className="hidden w-60 shrink-0 border-r bg-sidebar md:flex md:flex-col">
         <div className="flex h-14 items-center border-b px-4">

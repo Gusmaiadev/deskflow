@@ -21,6 +21,19 @@ export default defineConfig({
   },
   server: { proxy: apiProxy },
   preview: { proxy: apiProxy },
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            // React e React Router num arquivo próprio: eles quase nunca mudam, então o
+            // navegador reaproveita esse arquivo do cache entre um deploy e outro.
+            { name: 'react', test: /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/ },
+          ],
+        },
+      },
+    },
+  },
   // Testes de componente (npm test): o jsdom simula o navegador dentro do Node.
   test: {
     environment: 'jsdom',
