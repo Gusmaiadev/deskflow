@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { OverdueBadge, PriorityBadge, StatusBadge } from '@/components/ticket-badges';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -52,7 +53,12 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
             <TableRow key={ticket.id}>
               <TableCell className="font-mono text-muted-foreground">#{ticket.number}</TableCell>
               <TableCell className="max-w-72 whitespace-normal">
-                <p className="line-clamp-2 font-medium">{ticket.title}</p>
+                <Link
+                  to={`/tickets/${ticket.id}`}
+                  className="line-clamp-2 font-medium underline-offset-4 hover:underline"
+                >
+                  {ticket.title}
+                </Link>
                 <p className="text-xs text-muted-foreground">
                   {ticket.category.name} · aberto {formatRelative(ticket.createdAt)} por {ticket.requester.name}
                 </p>
