@@ -2,7 +2,8 @@ import { createContext, useContext } from 'react';
 import type { Credentials } from '@/api/auth';
 import type { User } from '@/types/api';
 
-export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
+// signed-out: a pessoa saiu pelo menu (anonymous: nunca entrou, ou a sessão acabou sozinha).
+export type AuthStatus = 'loading' | 'authenticated' | 'anonymous' | 'signed-out';
 
 export type AuthContextValue = {
   status: AuthStatus;

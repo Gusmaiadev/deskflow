@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { getErrorMessage } from '@/lib/errors';
 import { useDocumentTitle } from '@/lib/use-document-title';
 import { cn } from '@/lib/utils';
+import { NewTicketDialog } from './new-ticket-dialog';
 import { countActiveFilters, readFilters } from './ticket-filters';
 import { TicketsTable, TicketsTableSkeleton } from './tickets-table';
 import { TicketsToolbar, type FilterChanges } from './tickets-toolbar';
@@ -64,11 +65,14 @@ export function TicketsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Chamados</h1>
-        <p className="text-sm text-muted-foreground">
-          {isStaff ? 'Todos os chamados da central de suporte.' : 'Os chamados que você abriu.'}
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Chamados</h1>
+          <p className="text-sm text-muted-foreground">
+            {isStaff ? 'Todos os chamados da central de suporte.' : 'Os chamados que você abriu.'}
+          </p>
+        </div>
+        <NewTicketDialog />
       </div>
 
       <TicketsToolbar

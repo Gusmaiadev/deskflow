@@ -72,3 +72,37 @@ export type ApiPage<T> = { data: T[]; meta: PageMeta };
 export type ApiErrorBody = {
   error: { code: string; message: string; details?: unknown };
 };
+
+/** O detalhe do chamado traz também o que o usuário atual pode fazer com ele. */
+export type TicketDetail = Ticket & {
+  allowedStatuses: TicketStatus[];
+};
+
+export type Comment = {
+  id: string;
+  body: string;
+  isInternal: boolean;
+  createdAt: string;
+  author: { id: string; name: string; role: Role };
+};
+
+export type Dashboard = {
+  generatedAt: string;
+  summary: {
+    open: number;
+    overdue: number;
+    unassigned: number;
+    resolvedLast30Days: number;
+  };
+  sla: {
+    periodDays: number;
+    resolved: number;
+    withinSla: number;
+    compliancePercent: number | null;
+    averageResolutionHours: number | null;
+  };
+  byStatus: Record<TicketStatus, number>;
+  openByPriority: Record<TicketPriority, number>;
+  openByCategory: { category: string; total: number }[];
+  createdPerDay: { date: string; total: number }[];
+};
