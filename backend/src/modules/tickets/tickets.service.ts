@@ -5,7 +5,7 @@ import { eventsFromChanges } from '../ticket-events/events-from-changes.js';
 import * as usersRepository from '../users/users.repository.js';
 import { allowedTransitions, canTransition, isStaff } from './ticket-rules.js';
 import { calculateDueAt, recalculateDueAt, slaPauseChanges } from './ticket-sla.js';
-import { toTicketResponse, type TicketResponse } from './tickets.mapper.js';
+import { toTicketResponse, type TicketDetailResponse, type TicketResponse } from './tickets.mapper.js';
 import * as ticketsRepository from './tickets.repository.js';
 import type { TicketChanges, TicketWithRelations } from './tickets.repository.js';
 import type { CreateTicketInput, ListTicketsQuery, UpdateTicketInput } from './tickets.schemas.js';
@@ -65,8 +65,16 @@ export async function findAccessibleTicket(actor: Actor, ticketId: string): Prom
   return ticket;
 }
 
-export async function getTicket(actor: Actor, ticketId: string): Promise<TicketResponse> {
-  return toTicketResponse(await findAccessibleTicket(actor, ticketId));
+/** O chamado com as transições de status que o usuário atual pode fazer. */
+function toTicketDetail(actor: Actor, ticket: TicketWithRelations, now: Date = new Date()): TicketDetailResponse {
+  return {
+    ...toTicketResponse(ticket, now),
+    allowedStatuses: [...allowedTransitions(actor.role, ticket.status)],
+  };
+}
+
+export async function getTicket(actor: Actor, ticketId: string): Promise<TicketDetailResponse> {
+  return toTicketDetail(actor, await findAccessibleTicket(actor, ticketId));
 }
 
 async function ensureActiveCategory(categoryId: string): Promise<void> {
@@ -103,7 +111,11 @@ export async function createTicket(actor: Actor, input: CreateTicketInput): Prom
   return toTicketResponse(ticket);
 }
 
-export async function updateTicket(actor: Actor, ticketId: string, input: UpdateTicketInput): Promise<TicketResponse> {
+export async function updateTicket(
+  actor: Actor,
+  ticketId: string,
+  input: UpdateTicketInput,
+): Promise<TicketDetailResponse> {
   const ticket = await findAccessibleTicket(actor, ticketId);
   const staff = isStaff(actor.role);
 
@@ -180,7 +192,7 @@ export async function updateTicket(actor: Actor, ticketId: string, input: Update
   }
 
   if (Object.keys(changes).length === 0) {
-    return toTicketResponse(ticket, now);
+    return toTicketDetail(actor, ticket, now);
   }
 
   // Só grava se ninguém alterou o chamado desde a leitura: em duas alterações simultâneas, vale a primeira.
@@ -192,5 +204,5 @@ export async function updateTicket(actor: Actor, ticketId: string, input: Update
     throw new ConflictError('O chamado foi alterado por outra pessoa. Recarregue e tente de novo.', 'TICKET_CHANGED');
   }
 
-  return toTicketResponse(updated, now);
+  return toTicketDetail(actor, updated, now);
 }

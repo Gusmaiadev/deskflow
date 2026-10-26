@@ -24,6 +24,12 @@ export type TicketResponse = {
   assignee: PersonSummary | null;
 };
 
+/** O detalhe do chamado leva também o que quem está vendo pode fazer com ele. */
+export type TicketDetailResponse = TicketResponse & {
+  /** Para quais status o usuário atual pode levar o chamado. A tela mostra só estas opções. */
+  allowedStatuses: TicketStatus[];
+};
+
 export function toTicketResponse(ticket: TicketWithRelations, now: Date = new Date()): TicketResponse {
   return {
     id: ticket.id,
