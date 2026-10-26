@@ -1,8 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Inbox, SearchX } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import { useCategories } from '@/api/categories';
-import { useTickets } from '@/api/tickets';
+import { ticketsQueryOptions, useTickets } from '@/api/tickets';
 import { useStaff } from '@/api/users';
 import { useAuth } from '@/auth/auth-context';
 import { EmptyState, ErrorState } from '@/components/feedback';
@@ -20,12 +21,23 @@ export function TicketsPage() {
   const isStaff = user?.role === 'AGENT' || user?.role === 'ADMIN';
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const filters = readFilters(searchParams);
+  // O mesmo objeto enquanto a URL não muda: é dependência do pré-carregamento abaixo.
+  const filters = useMemo(() => readFilters(searchParams), [searchParams]);
   const activeCount = countActiveFilters(filters);
 
+  const queryClient = useQueryClient();
   const tickets = useTickets(filters);
   const categories = useCategories();
   const staff = useStaff(isStaff);
+
+  // Assim que a página atual chega, a seguinte já é buscada em segundo plano:
+  // o "Próxima" passa a abrir na hora, direto do cache. Durante o placeholder
+  // (a página anterior ainda na tela), o total de páginas pode estar desatualizado.
+  const totalPages = tickets.isPlaceholderData ? undefined : tickets.data?.meta.totalPages;
+  useEffect(() => {
+    if (totalPages === undefined || filters.page >= totalPages) return;
+    void queryClient.prefetchQuery(ticketsQueryOptions({ ...filters, page: filters.page + 1 }));
+  }, [queryClient, filters, totalPages]);
 
   /** Atualiza a URL. Mudar um filtro volta para a página 1; mudar de página, não. */
   const updateParams = useCallback(
