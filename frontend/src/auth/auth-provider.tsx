@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await logoutRequest();
     } finally {
       queryClient.clear();
-      setState({ status: 'anonymous', user: null });
+      setState({ status: 'signed-out', user: null });
     }
   }, [queryClient]);
 

@@ -17,7 +17,8 @@ export function RequireAuth({ roles }: { roles?: Role[] }) {
 
   if (status === 'loading') return <FullPageSpinner />;
 
-  if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
+  // Quem saiu pelo menu não deixa "voltar para": a próxima pessoa a entrar cairia na página dela.
+  if (!user) return <Navigate to="/login" replace state={status === 'signed-out' ? null : { from: location }} />;
 
   if (roles && !roles.includes(user.role)) return <ForbiddenPage />;
 
