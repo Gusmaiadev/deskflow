@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -20,4 +21,9 @@ export default defineConfig({
   },
   server: { proxy: apiProxy },
   preview: { proxy: apiProxy },
+  // Testes de componente (npm test): o jsdom simula o navegador dentro do Node.
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+  },
 });
