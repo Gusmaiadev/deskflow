@@ -101,6 +101,16 @@ describe('fluxo de status', () => {
     expect(response.body.error.details.allowed).toEqual(['OPEN', 'WAITING_REQUESTER', 'RESOLVED']);
   });
 
+  it('o detalhe informa os status permitidos para cada perfil', async () => {
+    const ticket = await openTicket('ana@test.example');
+
+    const asRequester = await request(app).get(`/api/tickets/${ticket.id}`).set(await authHeader('ana@test.example'));
+    const asAgent = await request(app).get(`/api/tickets/${ticket.id}`).set(await authHeader('agent@test.example'));
+
+    expect(asRequester.body.data.allowedStatuses).toEqual(['CLOSED']);
+    expect(asAgent.body.data.allowedStatuses).toEqual(['IN_PROGRESS', 'RESOLVED', 'CLOSED']);
+  });
+
   it('o solicitante não pode alterar a prioridade', async () => {
     const ticket = await openTicket('ana@test.example');
 

@@ -157,6 +157,21 @@ const schemas = {
       assignee: { anyOf: [person, { type: 'null' }] },
     },
   },
+  TicketDetail: {
+    allOf: [
+      ref('Ticket'),
+      {
+        type: 'object',
+        properties: {
+          allowedStatuses: {
+            type: 'array',
+            items: { type: 'string', enum: Object.values(TicketStatus) },
+            description: 'Para quais status o usuário atual pode levar o chamado',
+          },
+        },
+      },
+    ],
+  },
   TicketPage: {
     type: 'object',
     properties: {
@@ -438,7 +453,7 @@ export const openApiDocument = {
         summary: 'Detalhar chamado',
         security: bearer,
         parameters: [pathId('id', 'Id do chamado')],
-        responses: { 200: dataResponse('Chamado', ref('Ticket')), 401: errors[401], 404: errors[404] },
+        responses: { 200: dataResponse('Chamado', ref('TicketDetail')), 401: errors[401], 404: errors[404] },
       },
       patch: {
         tags: ['Chamados'],
@@ -450,7 +465,7 @@ export const openApiDocument = {
         parameters: [pathId('id', 'Id do chamado')],
         requestBody: jsonBody(fromZod(updateTicketSchema)),
         responses: {
-          200: dataResponse('Chamado atualizado', ref('Ticket')),
+          200: dataResponse('Chamado atualizado', ref('TicketDetail')),
           400: errors[400],
           401: errors[401],
           403: errors[403],
