@@ -63,6 +63,22 @@ describe('PATCH /api/categories/:id', () => {
     expect(response.body.data).toMatchObject({ id: data.category.id, name: 'Hardware', isActive: false });
   });
 
+  it('as categorias da demonstração não são desativadas, renomeadas nem têm a descrição trocada', async () => {
+    // Na lista dos testes como "categoria demo": a comparação ignora maiúsculas.
+    const demo = await prisma.category.create({ data: { name: 'Categoria Demo', description: 'Original' } });
+
+    const deactivate = await updateCategory('admin@test.example', demo.id, { isActive: false });
+    const rename = await updateCategory('admin@test.example', demo.id, { name: 'Outro Nome' });
+    const clearDescription = await updateCategory('admin@test.example', demo.id, { description: null });
+    const stored = await prisma.category.findUniqueOrThrow({ where: { id: demo.id } });
+
+    for (const response of [deactivate, rename, clearDescription]) {
+      expect(response.status).toBe(403);
+      expect(response.body.error.code).toBe('DEMO_CATEGORY');
+    }
+    expect(stored).toMatchObject({ name: 'Categoria Demo', description: 'Original', isActive: true });
+  });
+
   it('responde 404 para uma categoria que não existe e 400 para um id inválido', async () => {
     const unknownId = '01a0f3af-7c12-75ae-9d42-d46c05d373b0'; // um UUID válido, mas de nenhuma categoria
 
