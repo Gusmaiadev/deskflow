@@ -4,6 +4,8 @@
 #                                                                    -> aplica as migrations
 #   sudo docker compose -f docker-compose.prod.yml run --rm tools npx prisma db seed
 #                                                                    -> cria os dados de exemplo
+#   sudo docker compose -f docker-compose.prod.yml run --rm tools npm run db:reset-demo
+#                                                                    -> volta a demo aos dados de exemplo
 name: deskflow-prod
 
 services:
