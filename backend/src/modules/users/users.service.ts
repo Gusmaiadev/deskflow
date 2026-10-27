@@ -1,3 +1,4 @@
+import { env } from '../../config/env.js';
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error.js';
 import { hashPassword } from '../auth/password.js';
 import * as refreshTokensRepository from '../auth/refresh-tokens.repository.js';
@@ -70,6 +71,11 @@ export async function updateUser(
 
   if (!current) {
     throw new NotFoundError('Usuário não encontrado.', 'USER_NOT_FOUND');
+  }
+
+  // A demo dá acesso de admin a qualquer visitante: as contas públicas ficam como estão para o próximo.
+  if (env.DEMO_ACCOUNT_EMAILS.includes(current.email)) {
+    throw new ForbiddenError('As contas de demonstração não podem ser alteradas.', 'DEMO_ACCOUNT');
   }
 
   const updated = await usersRepository.update(userId, input);

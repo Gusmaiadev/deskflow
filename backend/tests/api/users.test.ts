@@ -2,6 +2,7 @@ import request, { type Response } from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { app } from '../../src/app.js';
 import { prisma } from '../../src/database/prisma.js';
+import { hashPassword } from '../../src/modules/auth/password.js';
 import { authHeader } from '../helpers/auth.js';
 import { disconnectDatabase, resetDatabase, seedTestData, TEST_PASSWORD, type TestData } from '../helpers/database.js';
 import { whileAnotherRequestWrites } from '../helpers/locks.js';
@@ -271,6 +272,27 @@ describe('proteções da gestão de usuários', () => {
     expect(create.status).toBe(403);
     expect(stored.isActive).toBe(false);
     expect(created).toBe(0);
+  });
+
+  it('as contas de demonstração não são desativadas, rebaixadas nem renomeadas, e as sessões continuam', async () => {
+    // Conta pública da demo, criada direto no banco como admin (como a Marina em produção).
+    const demo = await prisma.user.create({
+      data: { name: 'Demo Teste', email: 'demo@test.example', role: 'ADMIN', passwordHash: await hashPassword(TEST_PASSWORD) },
+    });
+    const session = await login('demo@test.example');
+
+    const deactivate = await updateUser(demo.id, { isActive: false });
+    const demote = await updateUser(demo.id, { role: 'REQUESTER' });
+    const rename = await updateUser(demo.id, { name: 'Outro Nome' });
+    const stored = await prisma.user.findUniqueOrThrow({ where: { id: demo.id } });
+    const renewal = await refresh(sessionCookie(session));
+
+    for (const response of [deactivate, demote, rename]) {
+      expect(response.status).toBe(403);
+      expect(response.body.error.code).toBe('DEMO_ACCOUNT');
+    }
+    expect(stored).toMatchObject({ name: 'Demo Teste', role: 'ADMIN', isActive: true });
+    expect(renewal.status).toBe(200);
   });
 
   it('um admin rebaixado não usa o token antigo para se promover de novo', async () => {

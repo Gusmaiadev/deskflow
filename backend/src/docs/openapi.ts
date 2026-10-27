@@ -373,6 +373,7 @@ export const openApiDocument = {
       patch: {
         tags: ['Usuários'],
         summary: 'Alterar nome, perfil ou status (admin)',
+        description: 'As contas de demonstração não podem ser alteradas: recebem 403 (DEMO_ACCOUNT).',
         security: bearer,
         parameters: [pathId('id', 'Id do usuário')],
         requestBody: jsonBody(fromZod(updateUserSchema)),
