@@ -315,13 +315,16 @@ export const openApiDocument = {
       patch: {
         tags: ['Autenticação'],
         summary: 'Trocar a própria senha',
-        description: 'Confere a senha atual e encerra as outras sessões; a sessão do cookie enviado continua.',
+        description:
+          'Confere a senha atual e encerra as outras sessões; a sessão do cookie enviado continua. ' +
+          'As contas de demonstração recebem 403 (DEMO_ACCOUNT).',
         security: bearer,
         requestBody: jsonBody(fromZod(changePasswordSchema)),
         responses: {
           204: { description: 'Senha alterada' },
           400: errors[400],
           401: errors[401],
+          403: errors[403],
           429: errors[429],
         },
       },

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { User } from '../../generated/prisma/client.js';
-import { BadRequestError, UnauthorizedError } from '../../shared/errors/app-error.js';
+import { env } from '../../config/env.js';
+import { BadRequestError, ForbiddenError, UnauthorizedError } from '../../shared/errors/app-error.js';
 import { toPublicUser, type PublicUser } from '../users/users.mapper.js';
 import * as usersRepository from '../users/users.repository.js';
 import { ACCESS_TOKEN_TTL_SECONDS, signAccessToken } from './access-token.js';
@@ -153,6 +154,11 @@ export async function changePassword(
   const user = await usersRepository.findById(userId);
 
   if (!user || !user.isActive) throw sessionExpired();
+
+  // A senha da demonstração é pública: trocá-la trancaria os próximos visitantes do lado de fora.
+  if (env.DEMO_ACCOUNT_EMAILS.includes(user.email)) {
+    throw new ForbiddenError('A senha das contas de demonstração não pode ser alterada.', 'DEMO_ACCOUNT');
+  }
 
   const passwordMatches = await verifyPassword(user.passwordHash, input.currentPassword);
 
