@@ -137,6 +137,24 @@ describe('PATCH /api/auth/password', () => {
     expect(stored.passwordHash).toBe(deactivated.passwordHash);
   });
 
+  it('recusa a troca de uma conta de demonstração sem mudar a senha nem as sessões', async () => {
+    const demo = await prisma.user.create({
+      data: { name: 'Demo Teste', email: 'demo@test.example', passwordHash: await hashPassword(TEST_PASSWORD) },
+    });
+    const thisDevice = await login('demo@test.example');
+    const otherDevice = await login('demo@test.example');
+
+    const response = await changePassword(thisDevice, { currentPassword: TEST_PASSWORD, newPassword: 'outra-senha-forte-456' });
+
+    const stored = await prisma.user.findUniqueOrThrow({ where: { id: demo.id } });
+    const otherDeviceRefresh = await refresh(sessionCookie(otherDevice));
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe('DEMO_ACCOUNT');
+    expect(stored.passwordHash).toBe(demo.passwordHash);
+    expect(otherDeviceRefresh.status).toBe(200);
+  });
+
   it('em duas trocas simultâneas vale a primeira: a outra recebe INVALID_CURRENT_PASSWORD e não grava', async () => {
     const session = await login('ana@test.example');
     const firstChangeHash = await hashPassword('senha-da-outra-troca-789');

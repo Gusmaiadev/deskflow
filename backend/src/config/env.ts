@@ -27,6 +27,17 @@ const envSchema = z.object({
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   /** Segredo que o CloudFront envia no header X-Origin-Verify. Sem ele, a verificação fica desligada. */
   ORIGIN_SECRET: z.string().min(32, 'ORIGIN_SECRET precisa ter pelo menos 32 caracteres.').optional(),
+  /** Contas de demonstração, com a senha publicada no README: não podem trocar a senha. Separe por vírgula. */
+  DEMO_ACCOUNT_EMAILS: z
+    .string()
+    .default('')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.email('DEMO_ACCOUNT_EMAILS deve ter só e-mails, separados por vírgula.'))),
 });
 
 const parsed = envSchema.safeParse(process.env);

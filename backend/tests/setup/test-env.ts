@@ -20,5 +20,11 @@ export function loadTestEnv(): Record<string, string | undefined> {
     throw new Error('TEST_DATABASE_URL precisa ser diferente de DATABASE_URL: os testes apagam todos os dados.');
   }
 
-  return { ...fromFile, NODE_ENV: 'test', DATABASE_URL: testDatabaseUrl };
+  return {
+    ...fromFile,
+    NODE_ENV: 'test',
+    DATABASE_URL: testDatabaseUrl,
+    // Lista fixa nos testes, escrita "suja" (maiúscula e espaço) para provar a normalização.
+    DEMO_ACCOUNT_EMAILS: 'Demo@Test.example, outra.demo@test.example',
+  };
 }
