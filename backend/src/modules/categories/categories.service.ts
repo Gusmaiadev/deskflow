@@ -1,5 +1,6 @@
 import type { Role } from '../../generated/prisma/enums.js';
-import { ConflictError, NotFoundError } from '../../shared/errors/app-error.js';
+import { env } from '../../config/env.js';
+import { ConflictError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error.js';
 import * as categoriesRepository from './categories.repository.js';
 import type { CreateCategoryInput, UpdateCategoryInput } from './categories.schemas.js';
 
@@ -23,6 +24,11 @@ export async function updateCategory(categoryId: string, input: UpdateCategoryIn
 
   if (!current) {
     throw new NotFoundError('Categoria não encontrada.', 'CATEGORY_NOT_FOUND');
+  }
+
+  // Sem as categorias originais ativas, ninguém abriria chamados na demo até o reset da meia-noite.
+  if (env.DEMO_CATEGORY_NAMES.includes(current.name.toLowerCase())) {
+    throw new ForbiddenError('As categorias da demonstração não podem ser alteradas.', 'DEMO_CATEGORY');
   }
 
   if (input.name !== undefined) {

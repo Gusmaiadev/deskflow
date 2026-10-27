@@ -38,6 +38,16 @@ const envSchema = z.object({
         .filter(Boolean),
     )
     .pipe(z.array(z.email('DEMO_ACCOUNT_EMAILS deve ter só e-mails, separados por vírgula.'))),
+  /** Categorias da demonstração: o admin não as altera (nome, descrição ou status). Separe por vírgula. */
+  DEMO_CATEGORY_NAMES: z
+    .string()
+    .default('')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((name) => name.trim().toLowerCase())
+        .filter(Boolean),
+    ),
 });
 
 const parsed = envSchema.safeParse(process.env);

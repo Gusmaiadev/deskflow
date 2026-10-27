@@ -24,7 +24,8 @@ export function loadTestEnv(): Record<string, string | undefined> {
     ...fromFile,
     NODE_ENV: 'test',
     DATABASE_URL: testDatabaseUrl,
-    // Lista fixa nos testes, escrita "suja" (maiúscula e espaço) para provar a normalização.
+    // Listas fixas nos testes, escritas "sujas" (maiúsculas e espaços) para provar a normalização.
     DEMO_ACCOUNT_EMAILS: 'Demo@Test.example, outra.demo@test.example',
+    DEMO_CATEGORY_NAMES: ' categoria demo , Outra Demo',
   };
 }

@@ -412,6 +412,7 @@ export const openApiDocument = {
       patch: {
         tags: ['Categorias'],
         summary: 'Alterar ou desativar categoria (admin)',
+        description: 'As categorias da demonstração não podem ser alteradas: recebem 403 (DEMO_CATEGORY).',
         security: bearer,
         parameters: [pathId('id', 'Id da categoria')],
         requestBody: jsonBody(fromZod(updateCategorySchema)),
