@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getErrorCode, getErrorMessage } from '@/lib/errors';
 import { useDocumentTitle } from '@/lib/use-document-title';
 import { CommentsSection } from './comments-section';
+import { EditTicketDialog } from './edit-ticket-dialog';
 import { TicketActions } from './ticket-actions';
 import { TicketInfo } from './ticket-info';
 
@@ -65,6 +66,9 @@ export function TicketDetailPage() {
   }
 
   const data = ticket.data;
+  // A mesma regra da API: só quem abriu, e só enquanto ninguém começou o atendimento.
+  // A API confere de novo ao gravar; aqui é só para não oferecer um botão que seria recusado.
+  const canEdit = data.requester.id === user?.id && data.status === 'OPEN';
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,9 +79,12 @@ export function TicketDetailPage() {
           <PriorityBadge priority={data.priority} />
           {data.isOverdue && <OverdueBadge />}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          <span className="text-muted-foreground">#{data.number}</span> {data.title}
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight break-words">
+            <span className="text-muted-foreground">#{data.number}</span> {data.title}
+          </h1>
+          {canEdit && <EditTicketDialog ticket={data} />}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
