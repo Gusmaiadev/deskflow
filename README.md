@@ -18,7 +18,7 @@ Todas as contas usam a senha `demo-c3ab6f91`:
 | Solicitante | Ana Souza | `ana@deskflow.example` |
 | Solicitante | Bruno Mendes | `bruno@deskflow.example` |
 
-Para ver o fluxo completo, abra um chamado como solicitante e atenda como técnico, numa janela anônima. Como administrador, dá para cadastrar pessoas e mudar perfis.
+Para ver o fluxo completo, abra um chamado como solicitante e atenda como técnico, numa janela anônima. Como administrador, dá para cadastrar pessoas, mudar perfis e criar categorias.
 
 - **Os dados voltam ao original todo dia à meia-noite** (horário de Brasília): chamados, contas e categorias criados por visitantes são apagados, e os 8 chamados de exemplo são recriados.
 - **As contas e categorias acima são protegidas:** a API não deixa trocar a senha delas, nem desativá-las ou alterá-las, para que ninguém tranque o próximo visitante do lado de fora.
@@ -36,6 +36,7 @@ Para ver o fluxo completo, abra um chamado como solicitante e atenda como técni
 | Notas internas (invisíveis ao solicitante) | — | ✅ | ✅ |
 | Dashboard com indicadores de SLA | — | ✅ | ✅ |
 | Gerenciar usuários e perfis | — | — | ✅ |
+| Gerenciar categorias | — | — | ✅ |
 
 **SLA por prioridade:** urgente 4 h · alta 8 h · média 24 h · baixa 72 h. O prazo é recalculado quando a prioridade muda, **fica pausado enquanto o chamado aguarda o solicitante** (e é estendido pelo tempo da pausa quando o atendimento volta), e chamados vencidos aparecem como atrasados.
 
