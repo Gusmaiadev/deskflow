@@ -24,19 +24,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { getErrorMessage } from '@/lib/errors';
 import { PRIORITY_OPTIONS } from '@/lib/labels';
+import { ticketDescriptionSchema, ticketTitleSchema } from '@/lib/ticket-schema';
 
 // As mesmas regras do createTicketSchema do backend (Dia 4).
 const newTicketSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(5, 'O título precisa ter pelo menos 5 caracteres.')
-    .max(150, 'O título pode ter no máximo 150 caracteres.'),
-  description: z
-    .string()
-    .trim()
-    .min(10, 'Descreva o problema com pelo menos 10 caracteres.')
-    .max(5000, 'A descrição pode ter no máximo 5000 caracteres.'),
+  title: ticketTitleSchema,
+  description: ticketDescriptionSchema,
   categoryId: z.string().min(1, 'Escolha uma categoria.'),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
 });

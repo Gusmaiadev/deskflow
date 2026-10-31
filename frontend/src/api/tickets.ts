@@ -24,6 +24,8 @@ export type NewTicket = {
 };
 
 export type TicketChanges = {
+  title?: string; // título e descrição: só quem abriu, enquanto o chamado está aberto
+  description?: string;
   status?: TicketStatus;
   priority?: TicketPriority;
   assigneeId?: string | null; // null = remover o responsável
