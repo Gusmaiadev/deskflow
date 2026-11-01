@@ -107,7 +107,7 @@ RDS PostgreSQL 17 (sem acesso público)
 
 **Qualidade**
 
-- 153 testes automatizados: 132 na API (unitários e de integração, com banco de dados real e isolado) e 21 de componentes no frontend.
+- 189 testes automatizados: 132 na API (unitários e de integração, com banco de dados real e isolado) e 57 no frontend (componentes e regras de tela, como os botões de cada status e perfil).
 - Documentação OpenAPI 3.1 gerada a partir dos mesmos schemas que validam as requisições.
 - Conventional Commits e Pull Requests para cada etapa.
 

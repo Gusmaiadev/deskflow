@@ -20,6 +20,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { formatDateTime } from '@/lib/format';
 import { PRIORITY_OPTIONS } from '@/lib/labels';
 import type { TicketDetail, TicketPriority, TicketStatus } from '@/types/api';
+import { actionLabel } from './action-label';
 
 const NO_ASSIGNEE = 'none';
 
@@ -32,28 +33,6 @@ const DISPLAY_ORDER: Record<TicketStatus, number> = {
   OPEN: 3,
   CLOSED: 4,
 };
-
-/** O texto do botão depende de onde o chamado está, para onde vai e de quem clica. */
-function actionLabel(ticket: TicketDetail, to: TicketStatus, isStaff: boolean): string {
-  if (!isStaff) {
-    if (to === 'CLOSED') return ticket.status === 'RESOLVED' ? 'Confirmar solução' : 'Cancelar chamado';
-    return 'O problema continua';
-  }
-
-  switch (to) {
-    case 'IN_PROGRESS':
-      if (ticket.status === 'OPEN') return ticket.assignee ? 'Iniciar atendimento' : 'Assumir chamado';
-      return 'Retomar atendimento';
-    case 'WAITING_REQUESTER':
-      return 'Pedir informação ao solicitante';
-    case 'RESOLVED':
-      return 'Marcar como resolvido';
-    case 'CLOSED':
-      return 'Fechar chamado';
-    case 'OPEN':
-      return 'Devolver para a fila';
-  }
-}
 
 /** Uma frase sobre a situação, para quem não tem botão para apertar. */
 function statusHint(ticket: TicketDetail, isStaff: boolean): string | null {
