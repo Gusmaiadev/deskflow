@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router';
 import { RequireAuth } from '@/auth/require-auth';
 import { FullPageSpinner } from '@/components/feedback';
 import { AppLayout } from '@/components/layout/app-layout';
+import { loadTicketDetailPage } from '@/lib/lazy-pages';
 import { HomeRedirect } from '@/pages/home-redirect';
 import { LoginPage } from '@/pages/login-page';
 import { NotFoundPage } from '@/pages/not-found-page';
@@ -30,9 +31,7 @@ export const router = createBrowserRouter([
           { path: 'tickets', element: <TicketsPage /> },
           {
             path: 'tickets/:id',
-            lazy: async () => ({
-              Component: (await import('@/pages/ticket-detail/ticket-detail-page')).TicketDetailPage,
-            }),
+            lazy: async () => ({ Component: (await loadTicketDetailPage()).TicketDetailPage }),
           },
           {
             element: <RequireAuth roles={['AGENT', 'ADMIN']} />,

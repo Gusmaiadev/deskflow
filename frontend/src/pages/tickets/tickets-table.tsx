@@ -3,7 +3,13 @@ import { OverdueBadge, PriorityBadge, StatusBadge } from '@/components/ticket-ba
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateTime, formatRelative } from '@/lib/format';
+import { loadTicketDetailPage } from '@/lib/lazy-pages';
 import type { Ticket } from '@/types/api';
+
+// Pré-carregar é só um adiantamento: se o download falhar, quem trata é a rota, no clique.
+const preloadDetailPage = () => {
+  loadTicketDetailPage().catch(() => {});
+};
 
 function DueCell({ ticket }: { ticket: Ticket }) {
   if (ticket.status === 'RESOLVED' || ticket.status === 'CLOSED') {
@@ -53,9 +59,13 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
             <TableRow key={ticket.id}>
               <TableCell className="font-mono text-muted-foreground">#{ticket.number}</TableCell>
               <TableCell className="max-w-72 whitespace-normal">
+                {/* Com o mouse em cima (ou o foco do teclado), o código da página de detalhe já
+                    começa a baixar: quando o clique vem, ela abre sem esperar o download. */}
                 <Link
                   to={`/tickets/${ticket.id}`}
                   className="line-clamp-2 font-medium underline-offset-4 hover:underline"
+                  onPointerEnter={preloadDetailPage}
+                  onFocus={preloadDetailPage}
                 >
                   {ticket.title}
                 </Link>
