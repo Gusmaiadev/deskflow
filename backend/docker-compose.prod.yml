@@ -1,11 +1,29 @@
-# Ambiente de PRODUÇÃO do DeskFlow, usado na EC2. O banco é a RDS, fora daqui.
-#   sudo docker compose -f docker-compose.prod.yml up -d --build     -> sobe ou atualiza a API
-#   sudo docker compose -f docker-compose.prod.yml run --rm --build tools
-#                                                                    -> aplica as migrations
+# Ambiente de PRODUÇÃO do DeskFlow, usado na EC2: a API e o PostgreSQL 17 (serviço db)
+# rodam aqui, lado a lado. O banco não publica porta: de fora da EC2, ninguém chega nele.
+# Dentro dela, a conexão pela rede exige senha (é assim que a API e o tools entram, pela
+# rede interna do Compose). Rode os comandos em ~/deskflow/backend.
+#   sudo docker compose -f docker-compose.prod.yml up -d --build     -> sobe ou atualiza o banco e a API
 #   sudo docker compose -f docker-compose.prod.yml run --rm tools npx prisma db seed
 #                                                                    -> cria os dados de exemplo
 #   sudo docker compose -f docker-compose.prod.yml run --rm tools npm run db:reset-demo
 #                                                                    -> volta a demo aos dados de exemplo
+#   sudo docker compose -f docker-compose.prod.yml exec db psql -U deskflow_admin -d deskflow
+#                                                                    -> psql como administrador do banco
+#
+# Migrations: a URL do administrador é montada na hora, a partir do .env.db, e só o
+# container das migrations a recebe (ela não fica gravada em arquivo nenhum):
+#   export MIGRATION_DATABASE_URL="postgresql://deskflow_admin:$(sed -n 's/^POSTGRES_PASSWORD=//p' .env.db)@db:5432/deskflow"
+#   sudo --preserve-env=MIGRATION_DATABASE_URL docker compose -f docker-compose.prod.yml run --rm --build -e MIGRATION_DATABASE_URL tools
+#   unset MIGRATION_DATABASE_URL
+#
+# Usuário da API (deskflow_app): UMA vez, DEPOIS das migrations. A senha sai da DATABASE_URL do .env.production:
+#   export APP_DB_PASSWORD="$(sed -n 's#^DATABASE_URL=postgresql://deskflow_app:\([^@]*\)@.*#\1#p' .env.production)"
+#   sudo --preserve-env=APP_DB_PASSWORD docker compose -f docker-compose.prod.yml exec -T -e APP_DB_PASSWORD db psql -U deskflow_admin -d deskflow < deploy/app-role.sql
+#   unset APP_DB_PASSWORD
+#
+# CUIDADO: "down -v", "docker volume rm" e "docker volume prune -a" APAGAM o banco (o volume
+# deskflow-prod_pgdata). "down" sem -v, "stop", "restart" e o reboot mantêm os dados.
+# Depois de um git pull que mude este arquivo, rode "up -d" na hora, longe da meia-noite.
 name: deskflow-prod
 
 services:
@@ -23,6 +41,15 @@ services:
       # Porta 80 da EC2 -> porta 3333 do container. Quem pode chegar
       # na porta 80 é decidido pelo Security Group (só o CloudFront).
       - "80:3333"
+    depends_on:
+      # No "up", a API espera o banco enquanto ele está subindo. Se ele estiver unhealthy
+      # (por exemplo, lento por usar a swap durante um build), o "up" só avisa e liga a API
+      # mesmo assim: sem o required: false, ela ficaria parada até alguém rodar o "up" de novo.
+      # No boot da EC2 (07h), o Docker religa os dois juntos: por alguns segundos, o /health
+      # responde 503 e as rotas que usam o banco, 500. Tudo volta sozinho quando ele fica pronto.
+      db:
+        condition: service_healthy
+        required: false
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3333/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 15s
@@ -36,8 +63,49 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  db:
+    # PostgreSQL 17 sobre Debian 13 (trixie): a mesma família do ambiente local, com a
+    # mesma ordenação de texto. A versão menor só muda depois de um "pull db": o próximo
+    # "up -d" recria o banco com ela (faça um pg_dump antes do pull).
+    image: postgres:17-trixie
+    restart: unless-stopped
+    # Usuário, senha e banco do administrador. A imagem só os usa na PRIMEIRA
+    # inicialização, com o volume vazio; depois disso, trocar a senha é ALTER ROLE.
+    env_file: .env.db
+    # Ajustes para a t4g.micro (1 GiB de RAM, dividido com a API): menos memória
+    # compartilhada e menos conexões que o padrão, e um teto para o WAL no disco.
+    command: >-
+      postgres
+      -c shared_buffers=64MB
+      -c max_connections=30
+      -c maintenance_work_mem=32MB
+      -c effective_cache_size=256MB
+      -c max_wal_size=256MB
+    # Sem "ports" de propósito: o banco fica só na rede interna do Compose.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # -h 127.0.0.1: na primeira inicialização, a imagem sobe um servidor temporário que
+      # só escuta no socket; sem o -h, o banco pareceria pronto antes da hora.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+      start_interval: 1s
+    # Prazo para o PostgreSQL encerrar sozinho (a imagem usa SIGINT, o "fast shutdown")
+    # antes do SIGKILL: vale no "stop", nos deploys e no desligamento das 03h.
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   tools:
     # Só roda quando chamado pelo nome (docker compose run tools).
+    # Sem depends_on de propósito: as migrations, o seed e o reset da meia-noite só
+    # conectam no banco, nunca o religam nem o recriam. Suba o db antes, se preciso.
     profiles: ["tools"]
     build:
       context: .
@@ -48,3 +116,7 @@ services:
       - .env.tools
     environment:
       NODE_ENV: production
+
+volumes:
+  # Vira o volume deskflow-prod_pgdata, no disco da EC2 (EBS criptografado).
+  pgdata:

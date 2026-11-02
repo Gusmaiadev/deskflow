@@ -1,8 +1,9 @@
 -- =====================================================================
--- Cria o usuário da API na RDS (deskflow_app), com permissões mínimas:
+-- Cria o usuário da API no PostgreSQL de produção (deskflow_app), com permissões mínimas:
 -- ler e gravar dados, e nada mais. Não cria, altera nem apaga tabelas.
 --
--- Rode UMA vez, conectado como deskflow_admin, DEPOIS das migrations.
+-- Rode UMA vez, conectado como deskflow_admin, DEPOIS das migrations
+-- (na EC2: o psql de dentro do container db; o comando está no docker-compose.prod.yml).
 -- A senha vem da variável de ambiente APP_DB_PASSWORD, nunca deste arquivo.
 -- =====================================================================
 
