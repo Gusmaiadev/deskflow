@@ -60,16 +60,17 @@ Vercel (frontend React)
 AWS CloudFront (HTTPS)
    │ HTTP, aceito só dos IPs do CloudFront (Security Group)
    ▼
-EC2 t4g.micro · Docker · API Node.js + Express
-   │ TLS com verificação de certificado, rede privada
-   ▼
-RDS PostgreSQL 17 (sem acesso público)
+EC2 t4g.micro · Docker Compose
+   ├── API Node.js + Express
+   │      │ rede interna do Docker
+   │      ▼
+   └── PostgreSQL 17 (sem porta publicada)
 ```
 
 - O navegador fala só com o domínio da Vercel: o cookie da sessão é de primeira parte e não há CORS.
 - A API recusa qualquer requisição que não tenha passado pela Vercel.
 - O servidor não tem porta SSH: o acesso é pelo AWS Systems Manager Session Manager.
-- O banco não tem IP público e só aceita conexões do Security Group da API.
+- O banco roda num container ao lado da API e não publica porta: de fora do servidor, ninguém chega nele.
 
 ## Stack
 
@@ -78,7 +79,7 @@ RDS PostgreSQL 17 (sem acesso público)
 | Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 4, shadcn/ui (Radix), React Router 8, TanStack Query 5, React Hook Form, Zod 4, Recharts |
 | Backend | Node.js 24, TypeScript, Express 5, Prisma 7, PostgreSQL 17, Zod 4, jose (JWT), argon2 |
 | Qualidade | Vitest, Supertest, Testing Library, OpenAPI 3.1 gerado dos schemas Zod, Swagger UI |
-| Infraestrutura | Docker, AWS (EC2, RDS, CloudFront, IAM, Systems Manager, EventBridge Scheduler), Vercel |
+| Infraestrutura | Docker, AWS (EC2, CloudFront, IAM, Systems Manager, EventBridge Scheduler), Vercel |
 
 ## Destaques técnicos
 
@@ -113,7 +114,7 @@ RDS PostgreSQL 17 (sem acesso público)
 
 **Custos**
 
-A infraestrutura roda com créditos do plano gratuito da AWS (cerca de US$ 25 por mês) e no plano Hobby da Vercel. O servidor e o banco desligam sozinhos das 03h às 07h, horário de Brasília (EventBridge Scheduler). Recursos caros comuns em produção (NAT Gateway, load balancer, Multi-AZ, Secrets Manager) foram deixados de fora de propósito, e estão listados como evolução.
+A infraestrutura custa cerca de US$ 10 por mês na AWS, pagos com créditos, e roda no plano Hobby da Vercel. Para caber nisso, o PostgreSQL roda em Docker no mesmo servidor da API, em vez de um banco gerenciado (RDS), e o servidor desliga sozinho das 03h às 07h, horário de Brasília (EventBridge Scheduler). Sem backups automáticos: a demo não guarda nada de valor, e o reset da meia-noite recria os dados de exemplo. Recursos caros comuns em produção (banco gerenciado, NAT Gateway, load balancer, Multi-AZ, Secrets Manager) foram deixados de fora de propósito, e estão listados como evolução.
 
 ## Rodando localmente
 
@@ -159,6 +160,7 @@ frontend/   SPA React: api/ (chamadas e cache), auth/ (sessão), pages/, compone
 - Linha do tempo do histórico na tela do chamado (a API já registra os eventos).
 - Convite por e-mail e tela de troca de senha (a rota já existe na API).
 - Deploy automático pelo GitHub Actions, com o SSM Run Command.
+- Banco gerenciado (RDS), com backups automáticos, quando houver dados reais.
 - Segredos no AWS Secrets Manager ou no Parameter Store, com rotação.
 - Domínio próprio com TLS de ponta a ponta.
 

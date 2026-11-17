@@ -18,7 +18,7 @@ function buildApp(secret: string | undefined) {
 }
 
 describe('requireOriginSecret', () => {
-  it('recusa a requisição que não passou pelo CloudFront', async () => {
+  it('recusa a requisição que não passou pela Vercel', async () => {
     const response = await request(buildApp(SECRET)).get('/ping');
 
     expect(response.status).toBe(403);
