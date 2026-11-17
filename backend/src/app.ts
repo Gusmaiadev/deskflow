@@ -19,7 +19,7 @@ import { apiRateLimit } from './shared/middlewares/rate-limit.js';
 
 export const app = express();
 
-// Atrás do CloudFront, o IP real do usuário chega no header X-Forwarded-For.
+// Atrás da Vercel e do CloudFront, o IP real do usuário chega no header X-Forwarded-For.
 // Dizer quantos proxies são confiáveis faz o req.ip (e o rate limit) usar o IP certo.
 // Com 0 (no seu PC), a configuração padrão do Express continua valendo.
 if (env.TRUST_PROXY_HOPS > 0) {
@@ -43,7 +43,7 @@ app.use('/api', (_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
-// Em produção, /api só aceita o que chegou pelo proxy (Vercel/CloudFront). O /health fica de fora
+// Em produção, /api só aceita o que chegou pela Vercel, que envia o header secreto. O /health fica de fora
 // porque o healthcheck do Docker o chama de dentro do próprio container.
 app.use('/api', requireOriginSecret(env.ORIGIN_SECRET));
 app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
